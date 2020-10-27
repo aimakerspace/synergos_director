@@ -45,7 +45,6 @@ class BaseOperator(AbstractOperator):
     def connect_channel(self):
         '''
         Initiate connection with RabbitMQ exchange where queues exist
-        :return:
         '''
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
