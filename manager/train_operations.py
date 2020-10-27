@@ -11,7 +11,7 @@
 
 
 # Custom
-from base import BaseOperator
+from .base import BaseOperator
 
 ##################
 # Configurations #
@@ -25,10 +25,25 @@ from base import BaseOperator
 
 class TrainOperator(BaseOperator):
     """ 
-    Contains management functionality to training queue related oeprations. 
+    Contains management functionality to training queue related operations.
     """
-    def __init__():
+
+    def __init__(self, host=None):
         # General attributes
+        super().__init__(host)
+        self.routing_key = 'SynMQ_topic_train'
+
+        # Connect to channel and exchange
+        super().connect_channel()
+
+    def publish_message(self, message):
+        '''
+        Publish single message to "train" queue in exchange
+        :param message: str
+        '''
+        self.channel.basic_publish(exchange=self.exchange,
+                                   routing_key=self.routing_key,
+                                   body=message)
 
 
         # Network attributes
@@ -44,6 +59,8 @@ class TrainOperator(BaseOperator):
 
 
         # Export Attributes
+
+        # Publish message
 
 
     ############

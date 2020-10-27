@@ -24,9 +24,9 @@ from typing import Dict, List, Tuple, Union
 ##############################################
 # Operator Abstract Class - AbstractOperator #
 ##############################################
-
+# '''
 class AbstractOperator(abc.ABC):
-
+    '''
     @abc.abstractmethod
     def create(self):
         """ Creates an operation payload to be sent to a remote queue for 
@@ -41,3 +41,4 @@ class AbstractOperator(abc.ABC):
             for job linearisation
         """
         pass
+    '''

@@ -11,7 +11,7 @@
 
 
 # Custom
-from base import BaseOperator
+from .base import BaseOperator
 
 ##################
 # Configurations #
@@ -25,10 +25,24 @@ from base import BaseOperator
 
 class EvalOperator(BaseOperator):
     """ 
-    Contains management functionality to buffer queue related oeprations. 
+    Contains management functionality to buffer queue related operations.
     """
-    def __init__():
+    def __init__(self, host=None):
         # General attributes
+        super().__init__(host)
+        self.routing_key= 'SynMQ_topic_evaluate'
+
+        # Connect to channel and exchange
+        super().connect_channel()
+
+    def publish_message(self, message):
+        '''
+        Publish single message to "evaluate" queue in exchange
+        :param message: str
+        '''
+        self.channel.basic_publish(exchange=self.exchange,
+                                   routing_key=routing_key,
+                                   message=message)
 
 
         # Network attributes
