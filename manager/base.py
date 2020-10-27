@@ -34,14 +34,19 @@ class BaseOperator(AbstractOperator):
         else:
             self.host = host
 
+        # Network attributes
         self.channel = None
         self.connection = None
         self.exchange = 'SynMQ_topic_logs'
         self.exchange_type = 'topic'
         self.durability = True
 
-        # Network attributes
+
     def connect_channel(self):
+        '''
+        Initiate connection with RabbitMQ exchange where queues exist
+        :return:
+        '''
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange=self.exchange,
