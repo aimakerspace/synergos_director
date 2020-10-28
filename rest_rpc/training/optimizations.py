@@ -18,7 +18,7 @@ from flask_restx import Namespace, Resource, fields
 # Custom
 from rest_rpc import app
 from rest_rpc.connection.core.utils import TopicalPayload, RunRecords
-from rest_rpc.training.core.hypertuners import NNITuner, optim_prefix
+# from rest_rpc.training.core.hypertuners import NNITuner, optim_prefix
 from rest_rpc.evaluation.core.utils import ValidationRecords
 # from rest_rpc.evaluation.validations import val_output_model
 

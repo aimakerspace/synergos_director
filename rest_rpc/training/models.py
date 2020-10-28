@@ -30,7 +30,7 @@ from rest_rpc.training.core.utils import (
     Poller,
     RPCFormatter
 )
-from rest_rpc.training.core.server import start_proc
+# from rest_rpc.training.core.server import start_proc
 from rest_rpc.training.alignments import alignment_model
 
 ##################

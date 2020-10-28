@@ -24,14 +24,14 @@ from rest_rpc.connection.core.utils import (
     RegistrationRecords,
     TagRecords
 )
-from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
+# from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
 from rest_rpc.training.core.utils import (
     AlignmentRecords, 
     ModelRecords,
     Poller,
     RPCFormatter
 )
-from rest_rpc.evaluation.core.server import start_proc
+# from rest_rpc.evaluation.core.server import start_proc
 from rest_rpc.evaluation.core.utils import PredictionRecords
 from rest_rpc.evaluation.validations import meta_stats_model
 

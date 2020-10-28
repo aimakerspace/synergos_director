@@ -32,7 +32,7 @@ from rest_rpc.training.core.utils import (
     Poller,
     RPCFormatter
 )
-from rest_rpc.evaluation.core.server import start_proc
+# from rest_rpc.evaluation.core.server import start_proc
 from rest_rpc.evaluation.core.utils import (
     ValidationRecords, 
     MLFRecords, 

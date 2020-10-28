@@ -43,7 +43,7 @@ SUBJECT = "Experiment" # table name
 db_path = app.config['DB_PATH']
 expt_records = ExperimentRecords(db_path=db_path)
 
-expt_schema = app.config['SCHEMAS']['experiment_schema']
+# expt_schema = app.config['SCHEMAS']['experiment_schema']
 
 ###########################################################
 # Models - Used for marshalling (i.e. moulding responses) #
