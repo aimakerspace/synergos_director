@@ -25,7 +25,7 @@ from .abstract import AbstractOperator
 
 class BaseOperator(AbstractOperator):
     """ 
-    Contains baseline functionality to all queue related oeprations. 
+    Contains baseline functionality to all queue related operations. 
     """
     def __init__(self, host=None):
         # General attributes
@@ -37,7 +37,7 @@ class BaseOperator(AbstractOperator):
         # Network attributes
         self.channel = None
         self.connection = None
-        self.exchange = 'SynMQ_topic_logs'
+        self.exchange_name = 'SynMQ_topic_logs'
         self.exchange_type = 'topic'
         self.durability = True
 
@@ -71,7 +71,7 @@ class BaseOperator(AbstractOperator):
         '''
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange=self.exchange,
+        self.channel.exchange_declare(exchange=self.exchange_name,
                                       exchange_type=self.exchange_type,
                                       durable=self.durability)
 
@@ -79,4 +79,15 @@ class BaseOperator(AbstractOperator):
     ##################
     # Core Functions #
     ##################
-    #abstract  methods
+    def create(self, project_id, expt_id, run_id, participant_id):
+        """ Creates an operation payload to be sent to a remote queue for 
+            linearising jobs for a Synergos cluster
+        """
+        pass
+    
+    def delete(self):
+        """ Removes an operation payload that had been sent to a remote queue 
+            for job linearisation
+        """
+        pass
+    '''

@@ -196,7 +196,7 @@ class Models(Resource):
 
         # If specific experiment was declared, collapse training space
         if expt_id:
-
+            
             retrieved_expt = expt_records.read(
                 project_id=project_id, 
                 expt_id=expt_id
@@ -236,7 +236,7 @@ class Models(Resource):
         # [Solution]
         # Poll irregardless of alignment. Modify Worker's Poll endpoint to be able 
         # to handle repeated initiialisations (i.e. create project logs if it does
-        # not exist, otherwise retrieve)
+        # not exist,  otherwise retrieve)
 
         auto_align = init_params['auto_align']
         if not auto_align:
@@ -251,7 +251,9 @@ class Models(Resource):
             'registrations': registrations
         }
         kwargs.update(init_params)
-
+        # logging.debug("c>")
+        import json
+        logging.debug(json.dumps(kwargs, default=str, sort_keys=True, indent=4))      
         completed_trainings = start_proc(kwargs)
 
         # Store output metadata into database
