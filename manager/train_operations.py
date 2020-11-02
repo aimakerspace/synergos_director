@@ -34,7 +34,7 @@ class TrainOperator(BaseOperator):
         self.routing_key = 'SynMQ_topic_train'
 
         # Connect to channel and exchange
-        super().connect_channel()
+        super().__connect_channel()
 
     def publish_message(self, message):
         '''

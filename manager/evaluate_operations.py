@@ -33,17 +33,7 @@ class EvalOperator(BaseOperator):
         self.routing_key= 'SynMQ_topic_evaluate'
 
         # Connect to channel and exchange
-        super().connect_channel()
-
-    def publish_message(self, message):
-        '''
-        Publish single message to "evaluate" queue in exchange
-        :param message: str
-        '''
-        self.channel.basic_publish(exchange=self.exchange,
-                                   routing_key=routing_key,
-                                   message=message)
-
+        super().__connect_channel()
 
         # Network attributes
 
@@ -58,6 +48,18 @@ class EvalOperator(BaseOperator):
 
 
         # Export Attributes
+
+
+
+    def publish_message(self, message):
+        '''
+        Publish single message to "evaluate" queue in exchange
+        :param message: str
+        '''
+        self.channel.basic_publish(exchange=self.exchange,
+                                   routing_key=routing_key,
+                                   message=message)
+
 
 
     ############
