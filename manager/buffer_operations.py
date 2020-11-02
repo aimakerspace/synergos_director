@@ -35,28 +35,7 @@ class BufferOperator(BaseOperator):
         self.auto_ack = True
 
         # Connect to channel and exchange
-        super().connect_channel()
-
-    def bind_consumer(self):
-        '''
-        Bind consumer to "buffer" queue
-        '''
-        self.channel.queue_bind(exchange=self.exchange,
-                                queue= self.queue,
-                                routing_key=self.routing_key)
-
-
-    def listen_message(self):
-        '''
-        Begin message consumption from "buffer" queue on current consumer
-        :return:
-        '''
-        self.channel.basic_consume(queue=self.queue,
-                                   on_message_callback=message_callback,
-                                   auto_ack=self.auto_ack)
-
-        self.channel.start_consuming()
-
+        super().__connect_channel()
 
         # Network attributes
 
@@ -72,6 +51,19 @@ class BufferOperator(BaseOperator):
 
         # Export Attributes
 
+    def listen_message(self):
+        '''
+        Begin message consumption from "buffer" queue on current consumer
+        :return:
+        '''
+
+        self.__bind_consumer()
+        self.channel.basic_consume(queue=self.queue,
+                                   on_message_callback=message_callback,
+                                   auto_ack=self.auto_ack)
+
+        self.channel.start_consuming()
+
 
     ############
     # Checkers #
@@ -81,6 +73,15 @@ class BufferOperator(BaseOperator):
     ###########    
     # Helpers #
     ###########
+    def __bind_consumer(self):
+    '''
+    Bind consumer to "buffer" queue
+    '''
+    self.channel.queue_bind(exchange=self.exchange,
+                            queue= self.queue,
+                            routing_key=self.routing_key)
+
+
 def message_callback(ch, method, properties, body):
     '''
     callback function to execute when message received by consumer
