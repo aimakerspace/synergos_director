@@ -155,8 +155,8 @@ class Alignments(Resource):
         try:
             all_relevant_registrations = registration_records.read_all(
                 filter={'project_id': project_id}
-            )
-
+            ) # NOTE
+            # AFTER THIS RESIDE ON TTP
             poller = Poller(project_id=project_id)
             all_metadata = poller.poll(all_relevant_registrations)
 
@@ -254,7 +254,7 @@ class Alignments(Resource):
                 )
 
                 logging.debug(f"Updated records: {expt_records.read(**curr_expt['key'])}")
-
+    # NOTE
             success_payload = payload_formatter.construct_success_payload(
                 status=201, 
                 method="alignments.post",
