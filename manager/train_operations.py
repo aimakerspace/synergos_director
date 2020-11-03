@@ -5,7 +5,7 @@
 ####################
 
 # Generic/Built-in
-
+import logging
 
 # Libs
 import pika
@@ -32,9 +32,10 @@ class TrainOperator(ProducerOperator):
         # General attributes
         super().__init__(host)
         self.routing_key = 'SynMQ_topic_train'
+        
+        self.connect_channel()
 
-        # Connect to channel and exchange
-        super().__connect_channel()
+        logging.debug("Instantiated TrainOperator()")
 
     # def publish_message(self, message):
     #     '''

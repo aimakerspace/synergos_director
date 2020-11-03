@@ -148,6 +148,9 @@ CORES_USED = psutil.cpu_count(logical=True) - 1
 # Detect no. of GPUs attached to server
 GPU_COUNT = count_available_gpus()
 
+# Determine running in cluster variant
+IS_CLUSTER_MODE = True
+
 logging.debug(f"Is master node? {IS_MASTER}")
 logging.debug(f"Input directory detected: {IN_DIR}")
 logging.debug(f"Output directory detected: {OUT_DIR}")
@@ -157,6 +160,7 @@ logging.debug(f"MLFlow directory detected: {MLFLOW_DIR}")
 logging.debug(f"Cache initialised: {CACHE}")
 logging.debug(f"No. of available CPU Cores: {CORES_USED}")
 logging.debug(f"No. of available GPUs: {GPU_COUNT}")
+logging.debug(f"Running in cluster mode? {IS_CLUSTER_MODE}")
 
 ##########################################
 # PySyft Project Database Configurations #

@@ -43,17 +43,14 @@ class BaseOperator(AbstractOperator):
         self.durability = True
         self.routing_key = None
 
-
         # Data attributes
         # e.g participant_id/run_id in specific format
-            
-        # Model attributes
-        # (-.-)
 
         # Optimisation attributes
-        # e.g multiprocess/asyncio
+        # e.g multiprocess/asyncio if necessary for optimisation
 
         # Export Attributes 
+        # e.g. any artifacts that are going to be exported eg Records
 
     
         
@@ -67,7 +64,7 @@ class BaseOperator(AbstractOperator):
     ###########    
     # Helpers #
     ###########
-    def __connect_channel(self):
+    def connect_channel(self):
         '''
         Initiate connection with RabbitMQ exchange where queues exist
         '''
@@ -130,6 +127,7 @@ class ProducerOperator(BaseOperator):
             # string run_kwarg
             message = self.create(run_kwarg)
             self.publish_message(message)
+        return message #temporarily return just the last message for debugging display in models.py
 
 class ConsumerOperator(BaseOperator):
     """
@@ -158,7 +156,7 @@ class ConsumerOperator(BaseOperator):
 
         self.channel.start_consuming()
 
-    def message_callback(ch, method, properties, body):
+    def message_callback(self, ch, method, properties, body):
         '''
         callback function to execute when message received by consumer
         '''

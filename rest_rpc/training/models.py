@@ -251,39 +251,38 @@ class Models(Resource):
         }
         kwargs.update(init_params)
 
-        if CLUSTER:
+        if app.config['IS_CLUSTER_MODE']:
+            from manager import train_operator
+            result = train_operator.process(kwargs)
+            
+            data = result
+            #return success msg with job submitted + payload: the job that was submitted
 
-        operator = TrainOperator()
-        operator.process(kwargs)
-        # also cater to if run_id / project not submitted, then geenrate multiple sets of kwargs 
+        else:
 
-        import json
-        logging.debug(json.dumps(kwargs, default=str, sort_keys=True, indent=4))      
-        
-        # completed_trainings = start_proc(kwargs)
+            completed_trainings = start_proc(kwargs)
 
-        # to be done by TTP
-        # # Store output metadata into database
-        # retrieved_models = []
-        # for (project_id, expt_id, run_id), data in completed_trainings.items():
+            # Store output metadata into database
+            retrieved_models = []
+            for (project_id, expt_id, run_id), data in completed_trainings.items():
 
-        #     new_model = model_records.create(
-        #         project_id=project_id,
-        #         expt_id=expt_id,
-        #         run_id=run_id,
-        #         details=data
-        #     )
+                new_model = model_records.create(
+                    project_id=project_id,
+                    expt_id=expt_id,
+                    run_id=run_id,
+                    details=data
+                )
 
-        #     retrieved_model = model_records.read(
-        #         project_id=project_id,
-        #         expt_id=expt_id,
-        #         run_id=run_id
-        #     )
+                retrieved_model = model_records.read(
+                    project_id=project_id,
+                    expt_id=expt_id,
+                    run_id=run_id
+                )
 
-        #     assert new_model.doc_id == retrieved_model.doc_id
-        #     retrieved_models.append(retrieved_model)
+                assert new_model.doc_id == retrieved_model.doc_id
+                retrieved_models.append(retrieved_model)
+            data = retrieved_models
 
-        #return success msg enqueued to MQ # job submitted + payload: the job that was submitted
         success_payload = payload_formatter.construct_success_payload(
             status=200,
             method="models.post",
