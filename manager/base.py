@@ -140,17 +140,16 @@ class ConsumerOperator(BaseOperator):
         self.auto_ack = None
 
     def __bind_consumer(self):
-    '''
-    Bind consumer to "buffer" queue
-    '''
-    self.channel.queue_bind(exchange=self.exchange_name,
-                            queue= self.queue,
-                            routing_key=self.routing_key)
+        '''
+        Bind consumer to queue
+        '''
+        self.channel.queue_bind(exchange=self.exchange_name,
+                                queue= self.queue,
+                                routing_key=self.routing_key)
     
     def listen_message(self):
         '''
-        Begin message consumption from "buffer" queue on current consumer
-        :return:
+        Begin message consumption from queue on current consumer
         '''
         self.__bind_consumer()
         self.channel.basic_consume(queue=self.queue,
