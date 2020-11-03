@@ -95,6 +95,21 @@ class BaseOperator(AbstractOperator):
         """
         pass
 
+    
+    def process_consumer(self, message):
+        '''
+        Convert string message to dictionary
+        '''
+        return json.loads(message)
+
+        # also need to do the unstr() of our msg
+        # string representation of TinyDate() must be converted back 
+        # to the same date format that was from database.json with start_proc 
+
+class ProducerOperator(BaseOperator):
+    def __init__(self, host=None):
+        super().__init__(host)
+    
     def publish_message(self, message):
         '''
         Publish single message to "evaluate" queue in exchange
@@ -106,10 +121,46 @@ class BaseOperator(AbstractOperator):
                                    properties=pika.BasicProperties(
                                        delivery_mode=2,
                                    ))
+    def process(self, kwargs):
+        # split kwargs into individual messages
+        # an individual message for each run
+        for run in kwargs['runs']:
+            run_kwarg = kwargs.copy()
+            run_kwarg['runs'] = [run]
+            # string run_kwarg
+            message = self.create(run_kwarg)
+            self.publish_message(message)
 
-    def read_listen(self, message):
-        return json.loads(message)
+class ConsumerOperator(BaseOperator):
+    """
+    Management functionality for message consumers
+    """
+    def __init__(self):
+        self.queue = None
+        self.auto_ack = None
 
-        # also need to do the unstr() of our msg
-        # string representation of TinyDate() must be converted back 
-        # to the same date format that was from database.json with start_proc 
+    def __bind_consumer(self):
+    '''
+    Bind consumer to "buffer" queue
+    '''
+    self.channel.queue_bind(exchange=self.exchange_name,
+                            queue= self.queue,
+                            routing_key=self.routing_key)
+    
+    def listen_message(self):
+        '''
+        Begin message consumption from "buffer" queue on current consumer
+        :return:
+        '''
+        self.__bind_consumer()
+        self.channel.basic_consume(queue=self.queue,
+                                   on_message_callback=self.message_callback,
+                                   auto_ack=self.auto_ack)
+
+        self.channel.start_consuming()
+
+    def message_callback(ch, method, properties, body):
+        '''
+        callback function to execute when message received by consumer
+        '''
+        print(" [x] %r:%r" % (method.routing_key, body))
