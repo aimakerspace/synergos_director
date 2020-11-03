@@ -336,7 +336,7 @@ class Predictions(Resource):
         logging.debug(f"{project_combinations}")
 
         if app.config['IS_CLUSTER_MODE']:
-            for _, kwargs = project_combinations.items():
+            for _, kwargs in project_combinations.items():
                 result = evaluate_operator.process(kwargs)
 
                 data = result
