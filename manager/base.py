@@ -41,6 +41,7 @@ class BaseOperator(AbstractOperator):
         self.exchange_name = 'SynMQ_topic_logs'
         self.exchange_type = 'topic'
         self.durability = True
+        self.routing_key = None
 
 
         # Data attributes
@@ -93,7 +94,19 @@ class BaseOperator(AbstractOperator):
             for job linearisation
         """
         pass
-    
+
+    def publish_message(self, message):
+        '''
+        Publish single message to "evaluate" queue in exchange
+        :param message: str
+        '''
+        self.channel.basic_publish(exchange=self.exchange_name,
+                                   routing_key=self.routing_key,
+                                   body=message,
+                                   properties=pika.BasicProperties(
+                                       delivery_mode=2,
+                                   ))
+
     def read_listen(self, message):
         return json.loads(message)
 

@@ -8,7 +8,7 @@
 
 
 # Libs
-
+import pika
 
 # Custom
 from .base import BaseOperator
@@ -35,6 +35,18 @@ class EvalOperator(BaseOperator):
         # Connect to channel and exchange
         super().__connect_channel()
 
+    # def publish_message(self, message):
+    #     '''
+    #     Publish single message to "evaluate" queue in exchange
+    #     :param message: str
+    #     '''
+    #     self.channel.basic_publish(exchange=self.exchange_name,
+    #                                routing_key=self.routing_key,
+    #                                body=message,
+    #                                properties=pika.BasicProperties(
+    #                                    delivery_mode=2,
+    #                                ))
+
         # Network attributes
 
 
@@ -49,19 +61,6 @@ class EvalOperator(BaseOperator):
 
         # Export Attributes
 
-
-
-    def publish_message(self, message):
-        '''
-        Publish single message to "evaluate" queue in exchange
-        :param message: str
-        '''
-        self.channel.basic_publish(exchange=self.exchange,
-                                   routing_key=routing_key,
-                                   message=message)
-
-
-
     ############
     # Checkers #
     ############
@@ -75,3 +74,12 @@ class EvalOperator(BaseOperator):
     ##################
     # Core Functions #
     ##################
+    def process(self, kwargs):
+    # split kwargs into individual messages
+    # an individual message for each run
+        for run in kwargs['runs']:
+            run_kwarg = kwargs.copy()
+            run_kwarg['runs'] = [run]
+            # string run_kwarg
+            message = self.create(run_kwarg)
+            self.publish_message(message)
