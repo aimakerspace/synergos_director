@@ -35,6 +35,8 @@ from rest_rpc.training.core.utils import (
 from rest_rpc.evaluation.core.utils import PredictionRecords
 from rest_rpc.evaluation.validations import meta_stats_model
 
+from manager import evaluate_operator
+
 ##################
 # Configurations #
 ##################
@@ -330,32 +332,42 @@ class Predictions(Resource):
             }
             project_combinations[registered_project_id] = kwargs
 
+        
         logging.debug(f"{project_combinations}")
 
-        completed_inferences = start_proc(project_combinations)
-        logging.debug(f"Completed Inferences: {completed_inferences}")
-        
-        # Store output metadata into database
-        retrieved_predictions = []
-        for combination_key, inference_stats in completed_inferences.items():
-            logging.debug(f"Inference stats: {inference_stats}")
+        if app.config['IS_CLUSTER_MODE']:
+            for _, kwargs = project_combinations.items():
+                result = evaluate_operator.process(kwargs)
 
-            combination_key = (participant_id,) + combination_key
+                data = result
 
-            new_prediction = prediction_records.create(
-                *combination_key,
-                details=inference_stats[participant_id]
-            )
+        else:
+            completed_inferences = start_proc(project_combinations)
+            logging.debug(f"Completed Inferences: {completed_inferences}")
+            
+            # Store output metadata into database
+            retrieved_predictions = []
+            for combination_key, inference_stats in completed_inferences.items():
+                logging.debug(f"Inference stats: {inference_stats}")
 
-            retrieved_prediction = prediction_records.read(*combination_key)
+                combination_key = (participant_id,) + combination_key
 
-            assert new_prediction.doc_id == retrieved_prediction.doc_id
-            retrieved_predictions.append(retrieved_prediction)
+                new_prediction = prediction_records.create(
+                    *combination_key,
+                    details=inference_stats[participant_id]
+                )
+
+                retrieved_prediction = prediction_records.read(*combination_key)
+
+                assert new_prediction.doc_id == retrieved_prediction.doc_id
+                retrieved_predictions.append(retrieved_prediction)
+
+            data = retrieved_predictions
 
         success_payload = payload_formatter.construct_success_payload(
             status=200,
             method="predictions.post",
             params=request.view_args,
-            data=retrieved_predictions
+            data=data
         )
         return success_payload, 200

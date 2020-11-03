@@ -39,6 +39,8 @@ from rest_rpc.evaluation.core.utils import (
     MLFlogger
 )
 
+from manager import evaluate_operator
+
 ##################
 # Configurations #
 ##################
@@ -277,34 +279,43 @@ class Validations(Resource):
             'version': None # defaults to final state of federated grid
         }
         kwargs.update(init_params)
+        
+        if app.config['IS_CLUSTER_MODE']:
+            result = evaluate_operator.process(kwargs)
 
-        completed_validations = start_proc({project_id: kwargs})
+            data = result
 
-        retrieved_validations = []
-        for combination_key, validation_stats in completed_validations.items():
+        else:    
 
-            # Store output metadata into database
-            for participant_id, inference_stats in validation_stats.items():
+            completed_validations = start_proc({project_id: kwargs})
 
-                worker_key = (participant_id,) + combination_key
+            retrieved_validations = []
+            for combination_key, validation_stats in completed_validations.items():
 
-                new_validation = validation_records.create(
-                    *worker_key,
-                    details=inference_stats
-                )
+                # Store output metadata into database
+                for participant_id, inference_stats in validation_stats.items():
 
-                retrieved_validation = validation_records.read(*worker_key)
+                    worker_key = (participant_id,) + combination_key
 
-                assert new_validation.doc_id == retrieved_validation.doc_id
-                retrieved_validations.append(retrieved_validation)
+                    new_validation = validation_records.create(
+                        *worker_key,
+                        details=inference_stats
+                    )
 
-        # Log all statistics to MLFlow
-        mlf_logger.log(accumulations=completed_validations)
+                    retrieved_validation = validation_records.read(*worker_key)
+
+                    assert new_validation.doc_id == retrieved_validation.doc_id
+                    retrieved_validations.append(retrieved_validation)
+
+            data = retrieved_validations
+
+            # Log all statistics to MLFlow
+            mlf_logger.log(accumulations=completed_validations)
 
         success_payload = payload_formatter.construct_success_payload(
             status=200,
             method="validations.post",
             params=request.view_args,
-            data=retrieved_validations
+            data=data
         )
         return success_payload, 200
