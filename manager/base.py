@@ -9,6 +9,7 @@
 
 # Libs
 import pika
+import json
 
 # Custom
 from .abstract import AbstractOperator
@@ -79,27 +80,32 @@ class BaseOperator(AbstractOperator):
     ##################
     # Core Functions #
     ##################
-    def create(self, project_id, expt_id, run_id, participant_id):
+    def create(self, run_kwarg):
         """ Creates an operation payload to be sent to a remote queue for 
             linearising jobs for a Synergos cluster
         """
-        pass
+        return json.dumps(run_kwarg)
+        
     
     def delete(self):
-        """ Removes an operation payload that had been sent to a remote queue 
+        """ 
+            Removes an operation payload that had been sent to a remote queue 
             for job linearisation
         """
         pass
     
     def process(self, kwargs):
         # split kwargs into individual messages
-        for kwarg in kwargs:
-            message = self.create(kwarg)
+        # an individual message for each run
+        for run_kwarg in kwargs['runs']:
+            run_kwarg = kwargs.copy()
+            run_kwarg['runs'] = [run]
+            # string run_kwarg
+            message = self.create(run_kwarg)
             self.publish_message(message)
 
-        pass 
-
-    # 
+    def read_listen(self, message):
+        return json.loads(message)
 
         # also need to do the unstr() of our msg
         # string representation of TinyDate() must be converted back 
