@@ -84,7 +84,7 @@ class BaseOperator(AbstractOperator):
         """ Creates an operation payload to be sent to a remote queue for 
             linearising jobs for a Synergos cluster
         """
-        return json.dumps(run_kwarg)
+        return json.dumps(run_kwarg, default=str, sort_keys=True)
         
     
     def delete(self):
@@ -94,16 +94,6 @@ class BaseOperator(AbstractOperator):
         """
         pass
     
-    def process(self, kwargs):
-        # split kwargs into individual messages
-        # an individual message for each run
-        for run_kwarg in kwargs['runs']:
-            run_kwarg = kwargs.copy()
-            run_kwarg['runs'] = [run]
-            # string run_kwarg
-            message = self.create(run_kwarg)
-            self.publish_message(message)
-
     def read_listen(self, message):
         return json.loads(message)
 

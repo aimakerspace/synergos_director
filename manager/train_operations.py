@@ -8,7 +8,7 @@
 
 
 # Libs
-
+import pika
 
 # Custom
 from .base import BaseOperator
@@ -41,7 +41,7 @@ class TrainOperator(BaseOperator):
         Publish single message to "train" queue in exchange
         :param message: str
         '''
-        self.channel.basic_publish(exchange=self.exchange,
+        self.channel.basic_publish(exchange=self.exchange_name,
                                    routing_key=self.routing_key,
                                    body=message,
                                    properties=pika.BasicProperties(
@@ -79,3 +79,12 @@ class TrainOperator(BaseOperator):
     ##################
     # Core Functions #
     ##################
+    def process(self, kwargs):
+        # split kwargs into individual messages
+        # an individual message for each run
+        for run in kwargs['runs']:
+            run_kwarg = kwargs.copy()
+            run_kwarg['runs'] = [run]
+            # string run_kwarg
+            message = self.create(run_kwarg)
+            self.publish_message(message)
