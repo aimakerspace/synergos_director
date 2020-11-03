@@ -33,7 +33,7 @@ class EvaluateOperator(ProducerOperator):
         self.routing_key= 'SynMQ_topic_evaluate'
 
         # Connect to channel and exchange
-        super().__connect_channel()
+        super().connect_channel()
 
     # def publish_message(self, message):
     #     '''
