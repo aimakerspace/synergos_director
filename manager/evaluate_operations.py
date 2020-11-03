@@ -11,7 +11,7 @@
 import pika
 
 # Custom
-from .base import BaseOperator
+from .base import ProducerOperator
 
 ##################
 # Configurations #
@@ -20,10 +20,10 @@ from .base import BaseOperator
 
 
 ############################################
-# Evaluation operator Class - EvalOperator #
+# Evaluation operator Class - EvaluateOperator #
 ############################################
 
-class EvalOperator(BaseOperator):
+class EvaluateOperator(ProducerOperator):
     """ 
     Contains management functionality to buffer queue related operations.
     """
@@ -74,12 +74,12 @@ class EvalOperator(BaseOperator):
     ##################
     # Core Functions #
     ##################
-    def process(self, kwargs):
-    # split kwargs into individual messages
-    # an individual message for each run
-        for run in kwargs['runs']:
-            run_kwarg = kwargs.copy()
-            run_kwarg['runs'] = [run]
-            # string run_kwarg
-            message = self.create(run_kwarg)
-            self.publish_message(message)
+    # def process(self, kwargs):
+    # # split kwargs into individual messages
+    # # an individual message for each run
+    #     for run in kwargs['runs']:
+    #         run_kwarg = kwargs.copy()
+    #         run_kwarg['runs'] = [run]
+    #         # string run_kwarg
+    #         message = self.create(run_kwarg)
+    #         self.publish_message(message)

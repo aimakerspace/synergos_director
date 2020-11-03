@@ -11,7 +11,7 @@
 import pika
 
 # Custom
-from .base import BaseOperator
+from .base import ProducerOperator
 
 ##################
 # Configurations #
@@ -23,7 +23,7 @@ from .base import BaseOperator
 # Train operator Class - TrainOperator #
 ########################################
 
-class TrainOperator(BaseOperator):
+class TrainOperator(ProducerOperator):
     """ 
     Contains management functionality to training queue related operations.
     """
@@ -79,12 +79,3 @@ class TrainOperator(BaseOperator):
     ##################
     # Core Functions #
     ##################
-    # def process(self, kwargs):
-    #     # split kwargs into individual messages
-    #     # an individual message for each run
-    #     for run in kwargs['runs']:
-    #         run_kwarg = kwargs.copy()
-    #         run_kwarg['runs'] = [run]
-    #         # string run_kwarg
-    #         message = self.create(run_kwarg)
-    #         self.publish_message(message)
