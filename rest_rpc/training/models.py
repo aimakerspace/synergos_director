@@ -250,9 +250,11 @@ class Models(Resource):
             'registrations': registrations
         }
         kwargs.update(init_params)
-        # For queue:
-        manager = TrainOperator()
-        manager.create(kwargs)
+
+        if CLUSTER:
+
+        operator = TrainOperator()
+        operator.process(kwargs)
         # also cater to if run_id / project not submitted, then geenrate multiple sets of kwargs 
 
         import json

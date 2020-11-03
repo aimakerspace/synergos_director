@@ -90,4 +90,17 @@ class BaseOperator(AbstractOperator):
             for job linearisation
         """
         pass
-    '''
+    
+    def process(self, kwargs):
+        # split kwargs into individual messages
+        for kwarg in kwargs:
+            message = self.create(kwarg)
+            self.publish_message(message)
+
+        pass 
+
+    # 
+
+        # also need to do the unstr() of our msg
+        # string representation of TinyDate() must be converted back 
+        # to the same date format that was from database.json with start_proc 

@@ -227,6 +227,8 @@ class Optimizations(Resource):
             expt_id=expt_id, 
             **tuning_params
         )
+        # above here add new class RayTuner to output 
+        # 
 
         logging.debug(f"NNI Experiment status: {nni_expt.get_experiment_status()}")
         curr_status = nni_expt.get_experiment_status()['status']

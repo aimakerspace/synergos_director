@@ -17,7 +17,7 @@ from .base import BaseOperator
 # Configurations #
 ##################
 
-
+#where to instantiate BufferOperator Consumer? How to ensure only one consumer?
 
 ##########################################
 # Buffer operator Class - BufferOperator #
