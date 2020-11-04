@@ -133,7 +133,8 @@ class ConsumerOperator(BaseOperator):
     """
     Management functionality for message consumers
     """
-    def __init__(self):
+    def __init__(self, host=None):
+        super().__init__(host)
         self.queue = None
         self.auto_ack = None
 
