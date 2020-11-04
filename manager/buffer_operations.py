@@ -35,7 +35,7 @@ class BufferOperator(ConsumerOperator):
         self.auto_ack = True
 
         # Connect to channel and exchange
-        super().__connect_channel()
+        super().connect_channel()
 
         # Network attributes
 
