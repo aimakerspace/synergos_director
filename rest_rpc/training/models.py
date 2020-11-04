@@ -287,6 +287,6 @@ class Models(Resource):
             status=200,
             method="models.post",
             params=request.view_args,
-            data=retrieved_models
+            data=data
         )
         return success_payload, 200
