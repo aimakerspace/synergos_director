@@ -121,12 +121,26 @@ class ProducerOperator(BaseOperator):
     def process(self, kwargs):
         # split kwargs into individual messages
         # an individual message for each run
-        for run in kwargs['runs']:
-            run_kwarg = kwargs.copy()
-            run_kwarg['runs'] = [run]
-            # string run_kwarg
-            message = self.create(run_kwarg)
-            self.publish_message(message)
+        for experiment in kwargs['experiments']:
+            
+            curr_expt_id = experiment['key']['expt_id']
+            
+            for run in kwargs['runs']:
+                
+                if run['key']['expt_id'] == curr_expt_id:
+                    run_kwarg = kwargs.copy()
+                    run_kwarg.update({
+                        'keys' : run['key'],
+                        'experiment': experiment,
+                        'run' : run
+                    })
+
+                    run_kwarg.pop('experiments')
+                    run_kwarg.pop('runs')
+
+                    # string run_kwarg
+                    message = self.create(run_kwarg)
+                    self.publish_message(message)
         return message #temporarily return just the last message for debugging display in models.py
 
 class ConsumerOperator(BaseOperator):
