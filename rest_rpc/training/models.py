@@ -250,14 +250,16 @@ class Models(Resource):
             'registrations': registrations
         }
         kwargs.update(init_params)
-
+        
         if app.config['IS_CLUSTER_MODE']:
             from manager import train_operator
             result = train_operator.process(kwargs)
             
             data = result
             #return success msg with job submitted + payload: the job that was submitted
-
+            logging.debug(result)
+            success_payload = result #todo
+            
         else:
 
             completed_trainings = start_proc(kwargs)
@@ -281,13 +283,11 @@ class Models(Resource):
 
                 assert new_model.doc_id == retrieved_model.doc_id
                 retrieved_models.append(retrieved_model)
-            data = retrieved_models
-        
-        success_payload = data # for testing. to be removed when ready to deploy
-        # success_payload = payload_formatter.construct_success_payload(
-        #     status=200,
-        #     method="models.post",
-        #     params=request.view_args,
-        #     data=data
-        # )
+
+            success_payload = payload_formatter.construct_success_payload(
+                status=200,
+                method="models.post",
+                params=request.view_args,
+                data=retrieved_models
+            )
         return success_payload, 200
