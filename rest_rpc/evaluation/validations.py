@@ -312,10 +312,11 @@ class Validations(Resource):
             # Log all statistics to MLFlow
             mlf_logger.log(accumulations=completed_validations)
 
-        success_payload = payload_formatter.construct_success_payload(
-            status=200,
-            method="validations.post",
-            params=request.view_args,
-            data=data
-        )
+        success_payload = data # for testing. to be removed when ready to deploy
+        # success_payload = payload_formatter.construct_success_payload(
+        #     status=200,
+        #     method="validations.post",
+        #     params=request.view_args,
+        #     data=data
+        # )
         return success_payload, 200

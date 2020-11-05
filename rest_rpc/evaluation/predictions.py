@@ -364,10 +364,11 @@ class Predictions(Resource):
 
             data = retrieved_predictions
 
-        success_payload = payload_formatter.construct_success_payload(
-            status=200,
-            method="predictions.post",
-            params=request.view_args,
-            data=data
-        )
+        success_payload = data # for testing. to be removed when ready to deploy
+        # success_payload = payload_formatter.construct_success_payload(
+        #     status=200,
+        #     method="predictions.post",
+        #     params=request.view_args,
+        #     data=data
+        # )
         return success_payload, 200

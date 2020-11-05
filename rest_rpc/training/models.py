@@ -282,11 +282,12 @@ class Models(Resource):
                 assert new_model.doc_id == retrieved_model.doc_id
                 retrieved_models.append(retrieved_model)
             data = retrieved_models
-
-        success_payload = payload_formatter.construct_success_payload(
-            status=200,
-            method="models.post",
-            params=request.view_args,
-            data=data
-        )
+        
+        success_payload = data # for testing. to be removed when ready to deploy
+        # success_payload = payload_formatter.construct_success_payload(
+        #     status=200,
+        #     method="models.post",
+        #     params=request.view_args,
+        #     data=data
+        # )
         return success_payload, 200
