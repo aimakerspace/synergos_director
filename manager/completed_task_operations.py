@@ -23,15 +23,15 @@ from .base import ConsumerOperator
 # Buffer operator Class - BufferOperator #
 ##########################################
 
-class BufferOperator(ConsumerOperator):
+class CompletedTaskOperator(ConsumerOperator):
     """ 
     Contains management functionality to buffer queue related oeprations. 
     """
     def __init__(self, host=None):
         # General attributes
         super().__init__(host)
-        self.routing_key = 'SynMQ_topic_buffer'
-        self.queue = 'buffer'
+        self.routing_key = 'SynMQ_topic_completed_task'
+        self.queue = 'completed_task'
         self.auto_ack = True
 
         # Connect to channel and exchange
@@ -65,3 +65,8 @@ class BufferOperator(ConsumerOperator):
     ##################
     # Core Functions #
     ##################
+
+
+if __name__=='__main__':
+    completed_task_consume = CompletedTaskOperator()
+    completed_task_consume.listen_message()
