@@ -129,14 +129,19 @@ class ProducerOperator(BaseOperator):
                 
                 if run['key']['expt_id'] == curr_expt_id:
                     run_kwarg = kwargs.copy()
-                    run_kwarg.update({
-                        'keys' : run['key'],
-                        'experiment': experiment,
-                        'run' : run
-                    })
 
-                    run_kwarg.pop('experiments')
-                    run_kwarg.pop('runs')
+                    # redacted code for previously incompatible start_proc kwarg
+                    # run_kwarg.update({
+                    #     'keys' : run['key'],
+                    #     'experiment': experiment,
+                    #     'run' : run
+                    # })
+                    run_kwarg['experiments'] = [experiment]
+                    run_kwarg['runs'] = [run]
+
+                    # redacted code for previously incompatible start_proc kwarg
+                    # run_kwarg.pop('experiments')
+                    # run_kwarg.pop('runs')
 
                     # string run_kwarg
                     message = self.create(run_kwarg)
