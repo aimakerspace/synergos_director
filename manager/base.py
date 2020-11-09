@@ -173,7 +173,7 @@ class ConsumerOperator(BaseOperator):
         self.channel.basic_consume(queue=self.queue,
                                    on_message_callback=self.message_callback,
                                    auto_ack=self.auto_ack)
-
+        print (f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
     def message_callback(self, ch, method, properties, body):
