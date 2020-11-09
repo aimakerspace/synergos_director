@@ -121,6 +121,7 @@ class ProducerOperator(BaseOperator):
     def process(self, kwargs):
         # split kwargs into individual messages
         # an individual message for each run
+
         for experiment in kwargs['experiments']:
             
             curr_expt_id = experiment['key']['expt_id']
@@ -143,7 +144,6 @@ class ProducerOperator(BaseOperator):
                     # run_kwarg.pop('experiments')
                     # run_kwarg.pop('runs')
 
-                    # string run_kwarg
                     message = self.create(run_kwarg)
                     self.publish_message(message)
         return message #temporarily return just the last message for debugging display in models.py
@@ -161,6 +161,8 @@ class ConsumerOperator(BaseOperator):
         '''
         Bind consumer to queue
         '''
+        result = self.channel.queue_declare('', exclusive=False) 
+        self.queue = result.method.queue
         self.channel.queue_bind(exchange=self.exchange_name,
                                 queue= self.queue,
                                 routing_key=self.routing_key)
