@@ -16,7 +16,7 @@ import os
 # Custom
 from .train_operations import TrainOperator
 from .evaluate_operations import EvaluateOperator
-from .completed_task_operations import CompletedTaskOperator
+# from .completed_task_operations import CompletedTaskOperator
 
 
 HOST = None
@@ -28,5 +28,5 @@ evaluate_operator = EvaluateOperator()
 def start_consumer(host=HOST):
     CompletedTaskOperator(host).listen_message()
 
-consumer_thread = threading.Thread(target=start_consumer)
-consumer_thread.start()
+# consumer_thread = threading.Thread(target=start_consumer)
+# consumer_thread.start()
