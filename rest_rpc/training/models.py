@@ -255,14 +255,14 @@ class Models(Resource):
         }
         kwargs.update(init_params)
 
-        output_payload = None #NOTE: Just added
+        # output_payload = None #NOTE: Just added
 
         if app.config['IS_CLUSTER_MODE']:
             train_operator = TrainOperator()
             result = train_operator.process(kwargs)
 
             #return number of runs submitted
-            success_payload = {"number_of_submitted_runs": result}
+            resp_data = {"number_of_submitted_runs": result}
 
             
         else:
@@ -270,7 +270,7 @@ class Models(Resource):
             completed_trainings = start_proc(kwargs)
 
             # Store output metadata into database
-            retrieved_models = []
+            resp_data = []
             for (project_id, expt_id, run_id), data in completed_trainings.items():
 
                 new_model = model_records.create(
@@ -287,12 +287,13 @@ class Models(Resource):
                 )
 
                 assert new_model.doc_id == retrieved_model.doc_id
-                retrieved_models.append(retrieved_model)
-
-            success_payload = payload_formatter.construct_success_payload(
-                status=200,
-                method="models.post",
-                params=request.view_args,
-                data=retrieved_models
-            )
+                resp_data.append(retrieved_model)
+        
+        success_payload = payload_formatter.construct_success_payload(
+            status=200,
+            method="models.post",
+            params=request.view_args,
+            data=resp_data,
+            cluster_mode=app.config["IS_CLUSTER_MODE"]
+        )
         return success_payload, 200
