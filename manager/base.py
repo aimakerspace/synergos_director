@@ -178,18 +178,22 @@ class ConsumerOperator(BaseOperator):
         Bind consumer to queue
         '''
 
-        self.channel.queue_bind(exchange=self.exchange_name,
-                                queue= self.queue,
-                                routing_key=self.routing_key)
+        self.channel.queue_bind(
+            exchange=self.exchange_name,
+            queue= self.queue,
+            routing_key=self.routing_key
+            )
     
     def listen_message(self):
         '''
         Begin message consumption from queue on current consumer
         '''
         self.__bind_consumer()
-        self.channel.basic_consume(queue=self.queue,
-                                   on_message_callback=self.message_callback,
-                                   auto_ack=self.auto_ack)
+        self.channel.basic_consume(
+            queue=self.queue,
+            on_message_callback=self.message_callback,
+            auto_ack=self.auto_ack
+            )
         print (f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
