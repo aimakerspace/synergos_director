@@ -161,8 +161,7 @@ class ConsumerOperator(BaseOperator):
         '''
         Bind consumer to queue
         '''
-        result = self.channel.queue_declare('', exclusive=False) 
-        self.queue = result.method.queue
+
         self.channel.queue_bind(exchange=self.exchange_name,
                                 queue= self.queue,
                                 routing_key=self.routing_key)
