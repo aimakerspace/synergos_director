@@ -35,7 +35,7 @@ from rest_rpc.training.core.utils import (
 from rest_rpc.evaluation.core.utils import PredictionRecords
 from rest_rpc.evaluation.validations import meta_stats_model
 
-from manager import evaluate_operator
+from manager.evaluate_operations import EvaluateOperator
 
 ##################
 # Configurations #
@@ -62,6 +62,7 @@ model_records = ModelRecords(db_path=db_path)
 prediction_records = PredictionRecords(db_path=db_path)
 
 rpc_formatter = RPCFormatter()
+ 
 
 ################################################################
 # Predictions - Used for marshalling (i.e. moulding responses) #
@@ -259,13 +260,18 @@ class Predictions(Resource):
                 filter={'project_id': registered_project_id}
             )
             
+            # TODO: fix polling handling in ttp side.
+            ''' #temporarily off to prevent connection error
             poller = Poller(project_id=registered_project_id)
+            
+            # causes this error: aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host 172.17.0.2:5000 ssl:default [Connect call failed ('172.17.0.2', 5000)]
             all_metadata = poller.poll(project_registrations)
 
             logging.debug(f"All metadata polled: {all_metadata}")
 
             (X_data_headers, y_data_headers,
              key_sequences, _) = rpc_formatter.aggregate_metadata(all_metadata)
+            '''
 
             ###########################
             # Implementation Footnote #
@@ -288,7 +294,7 @@ class Predictions(Resource):
             # `auto-align` is false, then MFA is skipped (i.e. inference data is
             # ASSUMED to have the same structure as that of training & 
             # validation data)
-
+            auto_align = False # temporarily off until aligner is fixed in ttp side for compatibility, as mentioned above
             if auto_align:
                 X_mfa_aligner = MultipleFeatureAligner(headers=X_data_headers)
                 X_mf_alignments = X_mfa_aligner.align()
@@ -336,10 +342,15 @@ class Predictions(Resource):
         logging.debug(f"{project_combinations}")
 
         if app.config['IS_CLUSTER_MODE']:
+
+            evaluate_operator = EvaluateOperator()
+
             for _, kwargs in project_combinations.items():
                 result = evaluate_operator.process(kwargs)
 
                 data = result
+
+            success_payload = data # for testing. to be removed when ready to deploy
 
         else:
             completed_inferences = start_proc(project_combinations)
@@ -364,11 +375,10 @@ class Predictions(Resource):
 
             data = retrieved_predictions
 
-        success_payload = data # for testing. to be removed when ready to deploy
-        # success_payload = payload_formatter.construct_success_payload(
-        #     status=200,
-        #     method="predictions.post",
-        #     params=request.view_args,
-        #     data=data
-        # )
+            success_payload = payload_formatter.construct_success_payload(
+                status=200,
+                method="predictions.post",
+                params=request.view_args,
+                data=data
+            )
         return success_payload, 200
