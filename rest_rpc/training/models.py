@@ -13,6 +13,8 @@ import mlflow
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
+import json
+
 # Custom
 from rest_rpc import app
 from rest_rpc.connection.core.utils import (
@@ -32,6 +34,8 @@ from rest_rpc.training.core.utils import (
 )
 # from rest_rpc.training.core.server import start_proc
 from rest_rpc.training.alignments import alignment_model
+
+from manager.train_operations import TrainOperator
 
 ##################
 # Configurations #
@@ -92,7 +96,7 @@ model_model = ns_api.model(
     }
 )
 
-model_output_model = ns_api.inherit(
+model_output_model = ns_api.inherit( #NOTE superset of outputs expected by both sme & cluster
     "model_output",
     model_model,
     {
@@ -180,7 +184,7 @@ class Models(Resource):
 
     @ns_api.doc("trigger_training")
     @ns_api.expect(input_model)
-    @ns_api.marshal_with(payload_formatter.plural_model)
+    @ns_api.marshal_with(payload_formatter.plural_model) #NOTE
     def post(self, project_id, expt_id, run_id):
         """ Triggers FL training for specified experiment & run parameters by
             initialising a PySyft FL grid
@@ -250,15 +254,16 @@ class Models(Resource):
             'registrations': registrations
         }
         kwargs.update(init_params)
-        
+        output_payload = None #NOTE: Just added
         if app.config['IS_CLUSTER_MODE']:
-            from manager import train_operator
+            train_operator = TrainOperator()
             result = train_operator.process(kwargs)
             
             data = result
             #return success msg with job submitted + payload: the job that was submitted
             logging.debug(result)
-            success_payload = result #todo
+            retrieved_models = json.loads(result) #temporary here. dependent on messaging
+            success_payload = retrieved_models
             
         else:
 

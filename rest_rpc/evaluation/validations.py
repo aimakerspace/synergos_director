@@ -32,6 +32,7 @@ from rest_rpc.training.core.utils import (
     Poller,
     RPCFormatter
 )
+
 # from rest_rpc.evaluation.core.server import start_proc
 from rest_rpc.evaluation.core.utils import (
     ValidationRecords, 
@@ -39,7 +40,7 @@ from rest_rpc.evaluation.core.utils import (
     MLFlogger
 )
 
-from manager import evaluate_operator
+from manager.evaluate_operations import EvaluateOperator
 
 ##################
 # Configurations #
@@ -281,9 +282,12 @@ class Validations(Resource):
         kwargs.update(init_params)
         
         if app.config['IS_CLUSTER_MODE']:
+            evaluate_operator = EvaluateOperator()
             result = evaluate_operator.process(kwargs)
 
             data = result
+
+            success_payload = data # for testing. to be removed when ready to deploy
 
         else:    
 
@@ -312,11 +316,11 @@ class Validations(Resource):
             # Log all statistics to MLFlow
             mlf_logger.log(accumulations=completed_validations)
 
-        success_payload = data # for testing. to be removed when ready to deploy
-        # success_payload = payload_formatter.construct_success_payload(
-        #     status=200,
-        #     method="validations.post",
-        #     params=request.view_args,
-        #     data=data
-        # )
+        
+            success_payload = payload_formatter.construct_success_payload(
+                status=200,
+                method="validations.post",
+                params=request.view_args,
+                data=data
+            )
         return success_payload, 200
