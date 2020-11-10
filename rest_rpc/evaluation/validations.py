@@ -285,10 +285,9 @@ class Validations(Resource):
             evaluate_operator = EvaluateOperator()
             result = evaluate_operator.process(kwargs)
 
-            data = result
-
-            success_payload = data # for testing. to be removed when ready to deploy
-
+            #return number of runs submitted
+            success_payload = {"number_of_submitted_runs": result}
+            
         else:    
 
             completed_validations = start_proc({project_id: kwargs})

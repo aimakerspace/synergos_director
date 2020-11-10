@@ -184,7 +184,7 @@ class Models(Resource):
 
     @ns_api.doc("trigger_training")
     @ns_api.expect(input_model)
-    @ns_api.marshal_with(payload_formatter.plural_model) #NOTE
+    # @ns_api.marshal_with(payload_formatter.plural_model) #NOTE
     def post(self, project_id, expt_id, run_id):
         """ Triggers FL training for specified experiment & run parameters by
             initialising a PySyft FL grid
@@ -254,16 +254,16 @@ class Models(Resource):
             'registrations': registrations
         }
         kwargs.update(init_params)
+
         output_payload = None #NOTE: Just added
+
         if app.config['IS_CLUSTER_MODE']:
             train_operator = TrainOperator()
             result = train_operator.process(kwargs)
-            
-            data = result
-            #return success msg with job submitted + payload: the job that was submitted
-            logging.debug(result)
-            retrieved_models = json.loads(result) #temporary here. dependent on messaging
-            success_payload = retrieved_models
+
+            #return number of runs submitted
+            success_payload = {"number_of_submitted_runs": result}
+
             
         else:
 

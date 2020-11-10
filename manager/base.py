@@ -5,7 +5,7 @@
 ####################
 
 # Generic/Built-in
-
+import logging
 
 # Libs
 import pika
@@ -18,6 +18,8 @@ from .abstract import AbstractOperator
 # Configurations #
 ##################
 
+# reduce log level
+logging.getLogger("pika").setLevel(logging.WARNING)
 
 
 ######################################
@@ -73,6 +75,8 @@ class BaseOperator(AbstractOperator):
         self.channel.exchange_declare(exchange=self.exchange_name,
                                       exchange_type=self.exchange_type,
                                       durable=self.durability)
+        # Turn on delivery confirmations
+        # self.channel.confirm_delivery()
 
 
     ##################
@@ -112,16 +116,24 @@ class ProducerOperator(BaseOperator):
         Publish single message to "evaluate" queue in exchange
         :param message: str
         '''
-        self.channel.basic_publish(exchange=self.exchange_name,
-                                   routing_key=self.routing_key,
-                                   body=message,
-                                   properties=pika.BasicProperties(
-                                       delivery_mode=2,
-                                   ))
-    def process(self, kwargs):
-        # split kwargs into individual messages
-        # an individual message for each run
+        try:
+            self.channel.basic_publish(exchange=self.exchange_name,
+                                    routing_key=self.routing_key,
+                                    body=message,
+                                    properties=pika.BasicProperties(
+                                        delivery_mode=2,
+                                        ))
+            logging.info('Message publish was confirmed')
+        except pika.exceptions.UnroutableError:
+            logging.info('Message could not be confirmed')
 
+    def process(self, kwargs):
+        """
+        Splits kwargs into individual messages, one message for each run
+        Returns number of messages published with publish_message()
+
+        """
+        published_count = 0
         for experiment in kwargs['experiments']:
             
             curr_expt_id = experiment['key']['expt_id']
@@ -146,7 +158,11 @@ class ProducerOperator(BaseOperator):
 
                     message = self.create(run_kwarg)
                     self.publish_message(message)
-        return message #temporarily return just the last message for debugging display in models.py
+                    published_count = published_count + 1
+
+        self.connection.close()
+
+        return published_count
 
 class ConsumerOperator(BaseOperator):
     """
