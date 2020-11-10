@@ -76,7 +76,7 @@ class BaseOperator(AbstractOperator):
                                       exchange_type=self.exchange_type,
                                       durable=self.durability)
         # Turn on delivery confirmations
-        # self.channel.confirm_delivery()
+        self.channel.confirm_delivery()
 
 
     ##################
