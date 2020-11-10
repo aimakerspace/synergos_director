@@ -342,15 +342,14 @@ class Predictions(Resource):
         logging.debug(f"{project_combinations}")
 
         if app.config['IS_CLUSTER_MODE']:
-
-            evaluate_operator = EvaluateOperator()
-
+            published_count = 0
             for _, kwargs in project_combinations.items():
+                evaluate_operator = EvaluateOperator()
                 result = evaluate_operator.process(kwargs)
 
-                data = result
-
-            success_payload = data # for testing. to be removed when ready to deploy
+                published_count += result
+            #return number of prediction runs submitted
+            success_payload = {"number_of_submitted_runs": published_count}
 
         else:
             completed_inferences = start_proc(project_combinations)
