@@ -260,18 +260,15 @@ class Predictions(Resource):
                 filter={'project_id': registered_project_id}
             )
             
-            # TODO: fix polling handling in ttp side.
-            ''' #temporarily off to prevent connection error
             poller = Poller(project_id=registered_project_id)
             
-            # causes this error: aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host 172.17.0.2:5000 ssl:default [Connect call failed ('172.17.0.2', 5000)]
             all_metadata = poller.poll(project_registrations)
 
             logging.debug(f"All metadata polled: {all_metadata}")
 
             (X_data_headers, y_data_headers,
              key_sequences, _) = rpc_formatter.aggregate_metadata(all_metadata)
-            '''
+            
 
             ###########################
             # Implementation Footnote #
@@ -294,7 +291,7 @@ class Predictions(Resource):
             # `auto-align` is false, then MFA is skipped (i.e. inference data is
             # ASSUMED to have the same structure as that of training & 
             # validation data)
-            auto_align = False # temporarily off until aligner is fixed in ttp side for compatibility, as mentioned above
+           
             if auto_align:
                 X_mfa_aligner = MultipleFeatureAligner(headers=X_data_headers)
                 X_mf_alignments = X_mfa_aligner.align()
