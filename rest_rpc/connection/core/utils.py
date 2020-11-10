@@ -130,7 +130,7 @@ class TopicalPayload:
             }
         )
 
-    def construct_success_payload(self, status, method, params, data):
+    def construct_success_payload(self, status, method, params, data, cluster_mode=False):
         """ Automates the construction & formatting of a payload for a
             successful endpoint operation 
         Args:
@@ -176,15 +176,18 @@ class TopicalPayload:
         self.__template['status'] = status
         self.__template['method'] = method
         self.__template['params'] = params
-        
-        if isinstance(data, list):
-            formatted_data = []
-            for record in data:
-                formatted_record = format_document(record, kind=self.subject)
-                formatted_data.append(formatted_record)
+
+        if not cluster_mode:
+            if isinstance(data, list):
+                formatted_data = []
+                for record in data:
+                    formatted_record = format_document(record, kind=self.subject)
+                    formatted_data.append(formatted_record)
+            else:
+                formatted_data = format_document(data, kind=self.subject)
         else:
-            formatted_data = format_document(data, kind=self.subject)
-                
+            formatted_data = data
+             
         self.__template['data'] = formatted_data
 
         jsonschema.validate(self.__template, schemas['payload_schema'])
