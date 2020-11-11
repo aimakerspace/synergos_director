@@ -31,3 +31,4 @@ tqdm==4.40.2
 werkzeug==1.0.1
 pyyaml==5.3.1
 xgboost==0.90
+pika
