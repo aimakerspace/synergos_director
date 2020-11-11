@@ -258,7 +258,7 @@ class Models(Resource):
         # output_payload = None #NOTE: Just added
 
         if app.config['IS_CLUSTER_MODE']:
-            train_operator = TrainOperator()
+            train_operator = TrainOperator(host=app.config["SYN_MQ_HOST"])
             result = train_operator.process(kwargs)
 
             #return IDs of runs submitted

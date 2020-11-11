@@ -85,8 +85,7 @@ def count_available_gpus() -> int:
     except subprocess.CalledProcessError as cpe:
         logging.warning(f"Could not detect GPUs! Error: {cpe}")
         logging.warning(f"Defaulting to CPU processing instead...")
-        return 0
-        
+        return 0        
 
 def detect_configurations(dirname):
     """ Automates loading of configuration files in specified directory
@@ -150,6 +149,9 @@ GPU_COUNT = count_available_gpus()
 
 # Determine running in cluster variant
 IS_CLUSTER_MODE = True
+
+# Synergos Message Queue server host
+SYN_MQ_HOST = None
 
 logging.debug(f"Is master node? {IS_MASTER}")
 logging.debug(f"Input directory detected: {IN_DIR}")

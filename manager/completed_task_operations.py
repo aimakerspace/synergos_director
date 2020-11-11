@@ -8,7 +8,7 @@
 
 
 # Libs
-
+import argparse
 
 # Custom
 from .base import ConsumerOperator
@@ -65,8 +65,29 @@ class CompletedTaskOperator(ConsumerOperator):
     ##################
     # Core Functions #
     ##################
+def str2none(v):
+    '''
+    Converts string None to NoneType for module compatibility
+    in main.py
+    '''
+    if v == "None":
+        return None
+    else:
+        return v
 
 
 if __name__=='__main__':
-    completed_task_consume = CompletedTaskOperator()
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--host',
+        dest='host',
+        help='Synergos_MQ server host',
+        default=None
+    )
+    
+    args = parser.parse_args()
+
+    completed_task_consume = CompletedTaskOperator(host=str2none(args.host))
     completed_task_consume.listen_message()

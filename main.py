@@ -7,7 +7,7 @@
 # Generic/Built-in
 import argparse
 import logging
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 # Custom
 from rest_rpc import app
@@ -50,6 +50,14 @@ if __name__ == "__main__":
         choices=['t','f', 'true', 'false', 'True', 'False'],
         default='True'
         )
+
+    parser.add_argument(
+        '--mqhost',
+        dest='mqhost',
+        help='Synergos_MQ server host',
+        default=None,
+        type=str
+    )
     
     args = parser.parse_args()
     
@@ -58,8 +66,19 @@ if __name__ == "__main__":
     else:
         app.config["IS_CLUSTER_MODE"] = False
 
+    if args.mqhost:
+        app.config["SYN_MQ_HOST"] = args.mqhost
+    else:
+        app.config["SYN_MQ_HOST"] = None
+
     # Run completed_task consumer as subprocess
-    Popen(["python", "-m", "manager.completed_task_operations"])
+    Popen(
+        ["python", "-m", "manager.completed_task_operations",\
+         "--host", f"{app.config['SYN_MQ_HOST']}"],
+         shell=False,
+         stdout=PIPE,
+         stderr=PIPE
+         )
 
     # Run flask
     app.run(host="0.0.0.0", port=5000, debug=False)
