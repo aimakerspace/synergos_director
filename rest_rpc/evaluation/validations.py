@@ -319,6 +319,7 @@ class Validations(Resource):
             status=200,
             method="validations.post",
             params=request.view_args,
-            data=data
+            data=data,
+            cluster_mode=app.config["IS_CLUSTER_MODE"]
         )
         return success_payload, 200

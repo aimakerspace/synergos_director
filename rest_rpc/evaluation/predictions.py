@@ -375,6 +375,7 @@ class Predictions(Resource):
             status=200,
             method="predictions.post",
             params=request.view_args,
-            data=data
+            data=data,
+            cluster_mode=app.config["IS_CLUSTER_MODE"]
         )
         return success_payload, 200
