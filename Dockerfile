@@ -77,6 +77,8 @@ WORKDIR /ttp
 EXPOSE 5000
 EXPOSE 8020
 EXPOSE 8080
+EXPOSE 5672
+EXPOSE 15672
 
 ########################
 # New Image - Debugger #
@@ -96,5 +98,5 @@ CMD python -m ptvsd --host 0.0.0.0 --port 5678 --wait main.py
 FROM base as prod
 
 WORKDIR /ttp
-ENTRYPOINT ["python", "./main.py"]
-CMD ["--help"]
+ENTRYPOINT ["python", "./main.py", "--cluster", "true"]
+# CMD ["--help"]
