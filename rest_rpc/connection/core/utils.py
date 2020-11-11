@@ -176,7 +176,6 @@ class TopicalPayload:
         self.__template['status'] = status
         self.__template['method'] = method
         self.__template['params'] = params
-
         if not cluster_mode:
             if isinstance(data, list):
                 formatted_data = []

@@ -261,9 +261,8 @@ class Models(Resource):
             train_operator = TrainOperator()
             result = train_operator.process(kwargs)
 
-            #return number of runs submitted
-            resp_data = {"number_of_submitted_runs": result}
-
+            #return IDs of runs submitted
+            resp_data = {"run_ids": result}
             
         else:
 

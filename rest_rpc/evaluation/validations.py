@@ -285,8 +285,7 @@ class Validations(Resource):
             evaluate_operator = EvaluateOperator()
             result = evaluate_operator.process(kwargs)
 
-            #return number of runs submitted
-            success_payload = {"number_of_submitted_runs": result}
+            data = {"run_ids": result}
             
         else:    
 
@@ -316,10 +315,10 @@ class Validations(Resource):
             mlf_logger.log(accumulations=completed_validations)
 
         
-            success_payload = payload_formatter.construct_success_payload(
-                status=200,
-                method="validations.post",
-                params=request.view_args,
-                data=data
-            )
+        success_payload = payload_formatter.construct_success_payload(
+            status=200,
+            method="validations.post",
+            params=request.view_args,
+            data=data
+        )
         return success_payload, 200

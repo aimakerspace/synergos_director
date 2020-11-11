@@ -339,14 +339,14 @@ class Predictions(Resource):
         logging.debug(f"{project_combinations}")
 
         if app.config['IS_CLUSTER_MODE']:
-            published_count = 0
+            run_ids = []
             for _, kwargs in project_combinations.items():
                 evaluate_operator = EvaluateOperator()
                 result = evaluate_operator.process(kwargs)
 
-                published_count += result
-            #return number of prediction runs submitted
-            success_payload = {"number_of_submitted_runs": published_count}
+                run_ids += result
+
+            data = {"run_ids": result}
 
         else:
             completed_inferences = start_proc(project_combinations)
@@ -371,10 +371,10 @@ class Predictions(Resource):
 
             data = retrieved_predictions
 
-            success_payload = payload_formatter.construct_success_payload(
-                status=200,
-                method="predictions.post",
-                params=request.view_args,
-                data=data
-            )
+        success_payload = payload_formatter.construct_success_payload(
+            status=200,
+            method="predictions.post",
+            params=request.view_args,
+            data=data
+        )
         return success_payload, 200

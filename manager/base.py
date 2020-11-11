@@ -118,11 +118,12 @@ class ProducerOperator(BaseOperator):
         '''
         try:
             self.channel.basic_publish(exchange=self.exchange_name,
-                                    routing_key=self.routing_key,
-                                    body=message,
-                                    properties=pika.BasicProperties(
-                                        delivery_mode=2,
-                                        ))
+                routing_key=self.routing_key,
+                body=message,
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                    )  
+                )
             logging.info('Message publish was confirmed')
         except pika.exceptions.UnroutableError:
             logging.info('Message could not be confirmed')
@@ -133,7 +134,7 @@ class ProducerOperator(BaseOperator):
         Returns number of messages published with publish_message()
 
         """
-        published_count = 0
+        run_ids = []
         for experiment in kwargs['experiments']:
             
             curr_expt_id = experiment['key']['expt_id']
@@ -142,27 +143,16 @@ class ProducerOperator(BaseOperator):
                 
                 if run['key']['expt_id'] == curr_expt_id:
                     run_kwarg = kwargs.copy()
-
-                    # redacted code for previously incompatible start_proc kwarg
-                    # run_kwarg.update({
-                    #     'keys' : run['key'],
-                    #     'experiment': experiment,
-                    #     'run' : run
-                    # })
                     run_kwarg['experiments'] = [experiment]
                     run_kwarg['runs'] = [run]
 
-                    # redacted code for previously incompatible start_proc kwarg
-                    # run_kwarg.pop('experiments')
-                    # run_kwarg.pop('runs')
-
                     message = self.create(run_kwarg)
                     self.publish_message(message)
-                    published_count = published_count + 1
+                    run_ids.append(run['key']['run_id'])
 
         self.connection.close()
 
-        return published_count
+        return run_ids
 
 class ConsumerOperator(BaseOperator):
     """
