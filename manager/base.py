@@ -184,11 +184,13 @@ class ConsumerOperator(BaseOperator):
             on_message_callback=self.message_callback,
             auto_ack=self.auto_ack
             )
-        print (f"Listening from {self.queue} queue: ")
+        # print (f"Listening from {self.queue} queue: ")
+        logging.info(f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
     def message_callback(self, ch, method, properties, body):
         '''
         callback function to execute when message received by consumer
         '''
-        print(" [x] %r:%r" % (method.routing_key, body))
+        # print(" [x] %r:%r" % (method.routing_key, body))
+        logging.info(" [x] %r:%r" % (method.routing_key, body))
