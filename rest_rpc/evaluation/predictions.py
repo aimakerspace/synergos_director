@@ -24,7 +24,7 @@ from rest_rpc.connection.core.utils import (
     RegistrationRecords,
     TagRecords
 )
-# from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
+from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
 from rest_rpc.training.core.utils import (
     AlignmentRecords, 
     ModelRecords,
