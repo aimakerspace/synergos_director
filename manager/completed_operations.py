@@ -23,7 +23,7 @@ from .base import ConsumerOperator
 # Buffer operator Class - BufferOperator #
 ##########################################
 
-class CompletedTaskOperator(ConsumerOperator):
+class CompletedOperator(ConsumerOperator):
     """ 
     Contains management functionality to buffer queue related oeprations. 
     """
@@ -89,5 +89,5 @@ if __name__=='__main__':
     
     args = parser.parse_args()
 
-    completed_task_consume = CompletedTaskOperator(host=str2none(args.host))
-    completed_task_consume.listen_message()
+    completed_consume = CompletedOperator(host=str2none(args.host))
+    completed_consume.listen_message()
