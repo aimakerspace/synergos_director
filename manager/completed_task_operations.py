@@ -30,8 +30,8 @@ class CompletedTaskOperator(ConsumerOperator):
     def __init__(self, host=None):
         # General attributes
         super().__init__(host)
-        self.routing_key = 'SynMQ_topic_completed_task'
-        self.queue = 'completed_task'
+        self.routing_key = 'SynMQ_topic_completed'
+        self.queue = 'completed'
         self.auto_ack = True
 
         # Connect to channel and exchange
