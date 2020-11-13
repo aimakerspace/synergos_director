@@ -80,6 +80,7 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
 
+    # receive arguments for synergos mq server host
     parser.add_argument(
         '--host',
         dest='host',
