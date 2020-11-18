@@ -28,7 +28,7 @@ from rest_rpc.training.core.utils import (
     Poller,
     RPCFormatter
 )
-# from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
+from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
 
 ##################
 # Configurations #
