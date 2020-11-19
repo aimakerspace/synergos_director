@@ -19,13 +19,13 @@ from .base import ProducerOperator
 
 
 
-########################################
-# Train operator Class - TrainOperator #
-########################################
+#########################################################
+# Train producer operator Class - TrainProducerOperator #
+#########################################################
 
-class TrainOperator(ProducerOperator):
+class TrainProducerOperator(ProducerOperator):
     """ 
-    Contains management functionality to training queue related operations.
+    Contains management functionality to training queue related producer operations.
     """
 
     def __init__(self, host=None):

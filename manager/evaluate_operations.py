@@ -6,7 +6,6 @@
 
 # Generic/Built-in
 
-
 # Libs
 import pika
 
@@ -19,13 +18,13 @@ from .base import ProducerOperator
 
 
 
-################################################
-# Evaluation operator Class - EvaluateOperator #
-################################################
+#################################################################
+# Evaluation producer operator Class - EvaluateProducerOperator #
+#################################################################
 
-class EvaluateOperator(ProducerOperator):
+class EvaluateProducerOperator(ProducerOperator):
     """ 
-    Contains management functionality to buffer queue related operations.
+    Contains management functionality to evaluate queue related producer operations.
     """
     def __init__(self, host=None):
         # General attributes

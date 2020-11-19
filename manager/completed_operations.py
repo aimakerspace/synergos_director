@@ -17,15 +17,15 @@ from .base import ConsumerOperator
 # Configurations #
 ##################
 
-#where to instantiate BufferOperator Consumer? How to ensure only one consumer?
+#where to instantiate Completed Operator Consumer? How to ensure only one consumer?
 
-##########################################
-# Buffer operator Class - BufferOperator #
-##########################################
+#################################################################
+# Completed consumer operator Class - CompletedConsumerOperator #
+#################################################################
 
-class CompletedOperator(ConsumerOperator):
+class CompletedConsumerOperator(ConsumerOperator):
     """ 
-    Contains management functionality to buffer queue related oeprations. 
+    Contains management functionality to completed queue related consumer operations. 
     """
     def __init__(self, host=None):
         # General attributes
@@ -65,6 +65,8 @@ class CompletedOperator(ConsumerOperator):
     ##################
     # Core Functions #
     ##################
+
+
 def str2none(v):
     '''
     Converts string None to NoneType for module compatibility
@@ -90,5 +92,5 @@ if __name__=='__main__':
     
     args = parser.parse_args()
 
-    completed_consume = CompletedOperator(host=str2none(args.host))
+    completed_consume = CompletedConsumerOperator(host=str2none(args.host))
     completed_consume.listen_message()
