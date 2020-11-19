@@ -19,8 +19,8 @@ from .abstract import AbstractOperator
 ##################
 
 # reduce log level
-logging.getLogger("pika").setLevel(logging.WARNING)
-
+# logging.getLogger("pika").setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 ######################################
 # Base Operator Class - BaseOperator #
