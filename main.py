@@ -72,13 +72,13 @@ if __name__ == "__main__":
         app.config["SYN_MQ_HOST"] = None
 
     # Run completed_task consumer as subprocess
-    Popen(
-        ["python", "-m", "manager.completed_operations",\
-         "--host", f"{app.config['SYN_MQ_HOST']}"],
-         shell=False,
-         stdout=PIPE,
-         stderr=PIPE
-         )
+    # Popen(
+    #     ["python", "-m", "manager.completed_operations",\
+    #      "--host", f"{app.config['SYN_MQ_HOST']}"],
+    #      shell=False,
+    #      stdout=PIPE,
+    #      stderr=PIPE
+    #      )
 
     # Run flask
     app.run(host="0.0.0.0", port=5000, debug=False)
