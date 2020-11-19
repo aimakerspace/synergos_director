@@ -40,7 +40,7 @@ from rest_rpc.evaluation.core.utils import (
     MLFlogger
 )
 
-from manager.evaluate_operations import EvaluateOperator
+from manager.evaluate_operations import EvaluateProducerOperator
 
 ##################
 # Configurations #
@@ -282,7 +282,7 @@ class Validations(Resource):
         kwargs.update(init_params)
         
         if app.config['IS_CLUSTER_MODE']:
-            evaluate_operator = EvaluateOperator(host=app.config["SYN_MQ_HOST"])
+            evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
             result = evaluate_operator.process(kwargs)
 
             data = {"run_ids": result}

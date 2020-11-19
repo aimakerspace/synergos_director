@@ -35,7 +35,7 @@ from rest_rpc.training.core.utils import (
 from rest_rpc.evaluation.core.utils import PredictionRecords
 from rest_rpc.evaluation.validations import meta_stats_model
 
-from manager.evaluate_operations import EvaluateOperator
+from manager.evaluate_operations import EvaluateProducerOperator
 
 ##################
 # Configurations #
@@ -341,7 +341,7 @@ class Predictions(Resource):
         if app.config['IS_CLUSTER_MODE']:
             run_ids = []
             for _, kwargs in project_combinations.items():
-                evaluate_operator = EvaluateOperator(host=app.config["SYN_MQ_HOST"])
+                evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
                 result = evaluate_operator.process(kwargs)
 
                 run_ids += result

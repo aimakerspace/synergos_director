@@ -35,7 +35,7 @@ from rest_rpc.training.core.utils import (
 # from rest_rpc.training.core.server import start_proc
 from rest_rpc.training.alignments import alignment_model
 
-from manager.train_operations import TrainOperator
+from manager.train_operations import TrainProducerOperator
 
 ##################
 # Configurations #
@@ -258,7 +258,7 @@ class Models(Resource):
         # output_payload = None #NOTE: Just added
 
         if app.config['IS_CLUSTER_MODE']:
-            train_operator = TrainOperator(host=app.config["SYN_MQ_HOST"])
+            train_operator = TrainProducerOperator(host=app.config["SYN_MQ_HOST"])
             result = train_operator.process(kwargs)
 
             #return IDs of runs submitted
