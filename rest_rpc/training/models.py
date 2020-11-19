@@ -259,7 +259,7 @@ class Models(Resource):
 
         if app.config['IS_CLUSTER_MODE']:
             train_operator = TrainProducerOperator(host=app.config["SYN_MQ_HOST"])
-            result = train_operator.process(kwargs)
+            result = train_operator.process(project_id, kwargs)
 
             #return IDs of runs submitted
             resp_data = {"run_ids": result}

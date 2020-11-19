@@ -342,7 +342,7 @@ class Predictions(Resource):
             run_ids = []
             for _, kwargs in project_combinations.items():
                 evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
-                result = evaluate_operator.process(kwargs)
+                result = evaluate_operator.process(project_id, kwargs)
 
                 run_ids += result
 

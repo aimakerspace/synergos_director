@@ -128,7 +128,7 @@ class ProducerOperator(BaseOperator):
         except pika.exceptions.UnroutableError:
             logging.info('Message could not be confirmed')
 
-    def process(self, kwargs):
+    def process(self, project_id, kwargs):
         """
         Splits kwargs into individual messages, one message for each run
         Returns number of messages published with publish_message()
@@ -146,7 +146,7 @@ class ProducerOperator(BaseOperator):
                     run_kwarg['experiments'] = [experiment]
                     run_kwarg['runs'] = [run]
 
-                    message = self.create(run_kwarg)
+                    message = self.create({project_id: run_kwarg})
                     self.publish_message(message)
                     run_ids.append(run['key']['run_id'])
 

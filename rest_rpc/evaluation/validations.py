@@ -283,7 +283,7 @@ class Validations(Resource):
         
         if app.config['IS_CLUSTER_MODE']:
             evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
-            result = evaluate_operator.process(kwargs)
+            result = evaluate_operator.process(project_id, kwargs)
 
             data = {"run_ids": result}
             
