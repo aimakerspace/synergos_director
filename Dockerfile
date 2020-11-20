@@ -71,6 +71,12 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip setuptools wheel \
  && pip install --no-cache-dir -r requirements.txt
 
+# Raytune lib
+RUN apt-get install -y rsync
+RUN pip install setproctitle
+RUN pip install -U ray
+RUN pip install hyperopt
+
 ADD . /ttp
 WORKDIR /ttp
 
