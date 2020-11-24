@@ -9,7 +9,7 @@
 # Libs
 
 # Custom
-from rest_rpc.training.core.hypertuners.k_tune_script import start_generate_hp, start_training_hp
+from rest_rpc.training.core.hypertuners.k_tune_driver_script import start_generate_hp, start_training_hp
 from rest_rpc import app
 from rest_rpc.connection.core.utils import (
     RunRecords
