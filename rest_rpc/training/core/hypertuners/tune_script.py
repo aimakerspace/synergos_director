@@ -36,7 +36,7 @@ def tune_trainable(config, checkpoint_dir=None):
     print("config: ", config)
     expt_id = config["expt_id"]
     project_id = config["project_id"]
-    run_id = "run_" + str(uuid.uuid4())
+    run_id = "optim_run_" + str(uuid.uuid4())
     search_space = config['search_space']
 
     '''
