@@ -191,6 +191,7 @@ class Models(Resource):
         """
         # Populate grid-initialising parameters
         init_params = request.json
+        print("init_params: ", init_params)
 
         # Retrieves expt-run supersets (i.e. before filtering for relevancy)
         retrieved_project = project_records.read(project_id=project_id)

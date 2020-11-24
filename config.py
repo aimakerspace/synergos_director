@@ -151,7 +151,7 @@ GPU_COUNT = count_available_gpus()
 IS_CLUSTER_MODE = True
 
 # Synergos Message Queue server host
-SYN_MQ_HOST = None
+SYN_MQ_HOST = "172.17.0.2"
 
 logging.debug(f"Is master node? {IS_MASTER}")
 logging.debug(f"Input directory detected: {IN_DIR}")
