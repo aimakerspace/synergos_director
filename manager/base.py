@@ -19,7 +19,7 @@ from .abstract import AbstractOperator
 ##################
 
 # reduce log level
-# logging.getLogger("pika").setLevel(logging.INFO)
+logging.getLogger("pika").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO)
 
 ######################################
@@ -184,8 +184,8 @@ class ConsumerOperator(BaseOperator):
             on_message_callback=self.message_callback,
             auto_ack=self.auto_ack
             )
-        # print (f"Listening from {self.queue} queue: ")
-        logging.info(f"Listening from {self.queue} queue: ")
+        print (f"Listening from {self.queue} queue: ")
+        # logging.info(f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
     def message_callback(self, ch, method, properties, body):
