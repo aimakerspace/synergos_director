@@ -15,8 +15,16 @@ from ray import tune
 # Custom
 from rest_rpc import app
 from rest_rpc.connection.core.utils import (
-    RunRecords
+    RunRecords,
+    ProjectRecords,
+    ExperimentRecords,
+    RegistrationRecords,
 )
+from rest_rpc.training.core.utils import (
+    Poller
+)
+
+from manager.train_operations import TrainProducerOperator
 
 ##################
 # Configurations #
@@ -24,6 +32,9 @@ from rest_rpc.connection.core.utils import (
 
 db_path = app.config['DB_PATH']
 run_records = RunRecords(db_path=db_path)
+project_records = ProjectRecords(db_path=db_path)
+expt_records = ExperimentRecords(db_path=db_path)
+registration_records = RegistrationRecords(db_path=db_path)
 
 ########################################
 # HP Tuning Class - HPTuning #
@@ -94,6 +105,85 @@ def start_generate_hp(kwargs=None):
 
     return kwargs
 
+def start_training_hp(project_id, expt_id, run_id):
+
+    # The below train producer logic is extracted from the post function at rest_rpc/training/models.py
+
+    # Populate grid-initialising parameters
+    init_params = {'auto_align': True, 'dockerised': True, 'verbose': True, 'log_msgs': True} # request.json
+
+    # Retrieves expt-run supersets (i.e. before filtering for relevancy)
+    retrieved_project = project_records.read(project_id=project_id)
+    project_action = retrieved_project['action']
+    experiments = retrieved_project['relations']['Experiment']
+    runs = retrieved_project['relations']['Run']
+
+    # If specific experiment was declared, collapse training space
+    if expt_id:
+        retrieved_expt = expt_records.read(
+            project_id=project_id, 
+            expt_id=expt_id
+        )
+        runs = retrieved_expt.pop('relations')['Run']
+        experiments = [retrieved_expt]
+
+        # If specific run was declared, further collapse training space
+        if run_id:
+
+            retrieved_run = run_records.read(
+                project_id=project_id, 
+                expt_id=expt_id,
+                run_id=run_id
+            )
+            retrieved_run.pop('relations')
+            runs = [retrieved_run]
+
+    # Retrieve all participants' metadata
+    registrations = registration_records.read_all(
+        filter={'project_id': project_id}
+    )
+    ###########################
+    # Implementation Footnote #
+    ###########################
+
+    # [Cause]
+    # Decoupling of MFA from training cycle is required. With this, polling is
+    # skipped since alignment is not triggered
+
+    # [Problems]
+    # When alignment is not triggered, workers are not polled for their headers
+    # and schemas. Since project logs are generated via polling, not doing so
+    # results in an error for subsequent operations
+
+    # [Solution]
+    # Poll irregardless of alignment. Modify Worker's Poll endpoint to be able 
+    # to handle repeated initiialisations (i.e. create project logs if it does
+    # not exist,  otherwise retrieve)
+
+    auto_align = init_params['auto_align']
+    if not auto_align:
+        poller = Poller(project_id=project_id)
+        poller.poll(registrations)
+
+    # Template for starting FL grid and initialising training
+    kwargs = {
+        'action': project_action,
+        'experiments': experiments,
+        'runs': runs,
+        'registrations': registrations
+    }
+    kwargs.update(init_params)
+
+    # output_payload = None #NOTE: Just added
+
+    if app.config['IS_CLUSTER_MODE']:
+        train_operator = TrainProducerOperator(host=app.config["SYN_MQ_HOST"])
+        result = train_operator.process(project_id, kwargs)
+
+        #return IDs of runs submitted
+        resp_data = {"run_ids": result}
+        print("resp_data: ", resp_data)    
+
 def read_search_space_path(search_space_path):
     '''
     Parse search_space.json for project
@@ -158,8 +248,9 @@ if __name__=='__main__':
         'max_lr': 0.005,
     }
     '''
-    search_space = read_search_space_path(args.search_space_path)
+    # search_space = read_search_space_path(args.search_space_path)
 
+    '''
     kwargs = {
         "project_id": "test_project_1",
         "expt_id": "test_experiment_1",
@@ -168,3 +259,4 @@ if __name__=='__main__':
     }
 
     start_generate_hp(kwargs)
+    '''
