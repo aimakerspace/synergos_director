@@ -162,6 +162,7 @@ class ConsumerOperator(BaseOperator):
         super().__init__(host)
         self.queue = None
         self.auto_ack = None
+        self.host = host
 
     def __bind_consumer(self):
         '''
@@ -174,23 +175,44 @@ class ConsumerOperator(BaseOperator):
             routing_key=self.routing_key
             )
     
-    def listen_message(self):
+    def listen_message(self, process_function):
         '''
         Begin message consumption from queue on current consumer
         '''
         self.__bind_consumer()
         self.channel.basic_consume(
             queue=self.queue,
-            on_message_callback=self.message_callback,
-            auto_ack=self.auto_ack
+            on_message_callback=generate_callback(process_function, self.host),
+            # on_message_callback=self.message_callback,
+            # auto_ack=self.auto_ack
             )
         print (f"Listening from {self.queue} queue: ")
         # logging.info(f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
-    def message_callback(self, ch, method, properties, body):
+    # def message_callback(self, ch, method, properties, body):
+    #     '''
+    #     callback function to execute when message received by consumer
+    #     '''
+    #     # print(" [x] %r:%r" % (method.routing_key, body))
+    #     logging.info(" [x] %r:%r" % (method.routing_key, body))
+
+
+# !!! Seems like putting this into class does not work.
+# https://stackoverflow.com/questions/57989692/how-can-i-pass-arbitrary-args-to-a-callback-function-in-rabbitmq
+def generate_callback(process_function, host):
+    
+    print(process_function)
+
+    def message_callback(ch, method, properties, body):
         '''
         callback function to execute when message received by consumer
         '''
         # print(" [x] %r:%r" % (method.routing_key, body))
-        logging.info(" [x] %r:%r" % (method.routing_key, body))
+        print(" [x] Received %r" % body.decode()) # json.loads(body)
+        completed_trainings = process_function(body.decode(), host)
+        print(" [x] Done")
+        ch.basic_ack(delivery_tag = method.delivery_tag)
+        logging.info(" [x] %r:%r" % (method.routing_key, completed_trainings))
+    
+    return message_callback

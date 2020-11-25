@@ -19,7 +19,7 @@ from rest_rpc.connection.core.utils import (
     RunRecords
 )
 from rest_rpc.training.core.hypertuners import AbstractTuner
-from rest_rpc.training.core.hypertuners.tune_driver_script import start_generate_hp, start_training_hp
+from rest_rpc.training.core.hypertuners.tune_driver_script import start_generate_hp, start_hp_training
 
 ##################
 # Configurations #
@@ -60,13 +60,13 @@ class RayTuneTuner(AbstractTuner):
         for run in retrieved_run:
             if run['key']['run_id'].startswith('optim'):
                 # send each hyperparamer config into the train queue
-                start_training_hp(project_id, expt_id, run['key']['run_id'])
+                start_hp_training(project_id, expt_id, run['key']['run_id'])
 
 if __name__=="__main__":
 
     search_space = {
         'algorithm': 'FedProx',
-        'rounds': {"type": "choice", "values": [1,2]},
+        'rounds': {"type": "choice", "values": [1]},
         'epochs': 1,
         'lr': 0.001,
         'weight_decay': 0.0,
@@ -75,7 +75,7 @@ if __name__=="__main__":
         'l1_lambda': 0.0,
         'l2_lambda': 0.0,
         'optimizer': 'SGD',
-        'criterion': 'BCELoss',
+        'criterion': 'MSELoss', # BCELoss
         'lr_scheduler': 'CyclicLR',
         'delta': 0.0,
         'patience': 10,
@@ -86,7 +86,7 @@ if __name__=="__main__":
         'max_lr': 0.005,
     }
 
-    n_samples = 3
+    n_samples = 2
 
     tuner = RayTuneTuner()
-    tuner.tune("test_project", "test_experiment", search_space, n_samples)
+    tuner.tune("test_project_1", "test_experiment_1", search_space, n_samples)
