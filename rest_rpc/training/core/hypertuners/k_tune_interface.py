@@ -84,4 +84,4 @@ if __name__ == '__main__':
 
     print("Complete consumer listening..")
     completed_consume = CompletedConsumerOperator(host=app.config["SYN_MQ_HOST"])
-    completed_consume.listen_message(test)
+    completed_consume.listen_message(start_hp_evaluate)

@@ -184,7 +184,7 @@ class ConsumerOperator(BaseOperator):
             queue=self.queue,
             on_message_callback=generate_callback(process_function, self.host),
             # on_message_callback=self.message_callback,
-            auto_ack=self.auto_ack
+            # auto_ack=self.auto_ack
             )
         print (f"Listening from {self.queue} queue: ")
         # logging.info(f"Listening from {self.queue} queue: ")
@@ -212,7 +212,7 @@ def generate_callback(process_function, host):
         print(" [x] Received %r" % body.decode()) # json.loads(body)
         completed_trainings = process_function(body.decode(), host)
         print(" [x] Done")
-        # ch.basic_ack(delivery_tag = method.delivery_tag)
+        ch.basic_ack(delivery_tag = method.delivery_tag)
         logging.info(" [x] %r:%r" % (method.routing_key, completed_trainings))
     
     return message_callback

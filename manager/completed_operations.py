@@ -10,29 +10,15 @@ import logging
 
 # Libs
 import argparse
-from flask import request
 
 # Custom
 from rest_rpc import app
-from rest_rpc.connection.core.utils import (
-    ProjectRecords,
-    ExperimentRecords,
-    RunRecords,
-    ParticipantRecords,
-    RegistrationRecords,
-)
 from .base import ConsumerOperator
-from .evaluate_operations import EvaluateProducerOperator
+from rest_rpc.training.core.hypertuners.tune_driver_script import start_hp_validations
 
 ##################
 # Configurations #
 ##################
-db_path = app.config['DB_PATH']
-project_records = ProjectRecords(db_path=db_path)
-expt_records = ExperimentRecords(db_path=db_path)
-run_records = RunRecords(db_path=db_path)
-participant_records = ParticipantRecords(db_path=db_path)
-registration_records = RegistrationRecords(db_path=db_path)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -79,77 +65,77 @@ class CompletedConsumerOperator(ConsumerOperator):
     ###########    
     # Helpers #
     ###########
-    def message_callback(self, ch, method, properties, body):
-        '''
-        callback function to execute when message received by consumer
-        '''
+    # def message_callback(self, ch, method, properties, body):
+    #     '''
+    #     callback function to execute when message received by consumer
+    #     '''
 
-        # For hyperparam tuning validations
-        if re.search(r"TRAINING COMPLETE .+/optim_run_.*", body.decode()):
-            message_components = re.findall(r"[\w\-]+", body.decode())
-            project_id = message_components[3]
-            expt_id = message_components[4]
-            run_id = message_components[5]
+    #     # For hyperparam tuning validations
+    #     if re.search(r"TRAINING COMPLETE .+/optim_run_.*", body.decode()):
+    #         message_components = re.findall(r"[\w\-]+", body.decode())
+    #         project_id = message_components[3]
+    #         expt_id = message_components[4]
+    #         run_id = message_components[5]
 
-            # init_params = request.json
+    #         # init_params = request.json
 
-            # Retrieves expt-run supersets (i.e. before filtering for relevancy)
-            retrieved_project = project_records.read(project_id=project_id)
-            project_action = retrieved_project['action']
-            experiments = retrieved_project['relations']['Experiment']
-            runs = retrieved_project['relations']['Run']
+    #         # Retrieves expt-run supersets (i.e. before filtering for relevancy)
+    #         retrieved_project = project_records.read(project_id=project_id)
+    #         project_action = retrieved_project['action']
+    #         experiments = retrieved_project['relations']['Experiment']
+    #         runs = retrieved_project['relations']['Run']
 
-            # If specific experiment was declared, collapse training space
-            if expt_id:
+    #         # If specific experiment was declared, collapse training space
+    #         if expt_id:
 
-                retrieved_expt = expt_records.read(
-                    project_id=project_id, 
-                    expt_id=expt_id
-                )
-                runs = retrieved_expt.pop('relations')['Run']
-                experiments = [retrieved_expt]
+    #             retrieved_expt = expt_records.read(
+    #                 project_id=project_id, 
+    #                 expt_id=expt_id
+    #             )
+    #             runs = retrieved_expt.pop('relations')['Run']
+    #             experiments = [retrieved_expt]
 
-                # If specific run was declared, further collapse training space
-                if run_id:
+    #             # If specific run was declared, further collapse training space
+    #             if run_id:
 
-                    retrieved_run = run_records.read(
-                        project_id=project_id, 
-                        expt_id=expt_id,
-                        run_id=run_id
-                    )
-                    retrieved_run.pop('relations')
-                    runs = [retrieved_run]
+    #                 retrieved_run = run_records.read(
+    #                     project_id=project_id, 
+    #                     expt_id=expt_id,
+    #                     run_id=run_id
+    #                 )
+    #                 retrieved_run.pop('relations')
+    #                 runs = [retrieved_run]
 
-            # Retrieve all participants' metadata
-            registrations = registration_records.read_all(
-                filter={'project_id': project_id}
-            )
+    #         # Retrieve all participants' metadata
+    #         registrations = registration_records.read_all(
+    #             filter={'project_id': project_id}
+    #         )
 
-            # Include all relevant participants
-            participants = [record['participant']['id'] 
-            for record in registrations]
+    #         # Include all relevant participants
+    #         participants = [record['participant']['id'] 
+    #         for record in registrations]
 
-            kwargs = {
-                'action': project_action,
-                'experiments': experiments,
-                'runs': runs,
-                'registrations': registrations,
-                'participants': participants,
-                'metas': ['evaluate'],
-                'version': None # defaults to final state of federated grid
-            }
+    #         kwargs = {
+    #             'action': project_action,
+    #             'experiments': experiments,
+    #             'runs': runs,
+    #             'registrations': registrations,
+    #             'participants': participants,
+    #             'metas': ['evaluate'],
+    #             'version': None # defaults to final state of federated grid
+    #         }
 
-            # kwargs.update(init_params)
+    #         # kwargs.update(init_params)
 
-            # PRODUCE TRAINING MESSAGE
-            if app.config['IS_CLUSTER_MODE']:
-                evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
-                result = evaluate_operator.process(project_id, kwargs)
+    #         # PRODUCE TRAINING MESSAGE
+    #         if app.config['IS_CLUSTER_MODE']:
+    #             evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
+    #             result = evaluate_operator.process(project_id, kwargs)
 
-                data = {"run_ids": result}
+    #             data = {"run_ids": result}
 
-        # print(" [x] %r:%r" % (method.routing_key, body))
-        logging.info(" [x] %r:%r" % (method.routing_key, body))
+    #     # print(" [x] %r:%r" % (method.routing_key, body))
+    #     logging.info(" [x] %r:%r" % (method.routing_key, body))
         
 
     ##################
@@ -182,5 +168,6 @@ if __name__=='__main__':
     
     args = parser.parse_args()
 
+    print("Completed_Consumer listening...")
     completed_consume = CompletedConsumerOperator(host=str2none(args.host))
-    completed_consume.listen_message()
+    completed_consume.listen_message(start_hp_validations)
