@@ -148,8 +148,8 @@ class CompletedConsumerOperator(ConsumerOperator):
 
                 data = {"run_ids": result}
 
-        # print(" [x] %r:%r" % (method.routing_key, body))
-        logging.info(" [x] %r:%r" % (method.routing_key, body))
+        print(" [x] %r:%r" % (method.routing_key, body))
+        # logging.info(" [x] %r:%r" % (method.routing_key, body))
         
 
     ##################
