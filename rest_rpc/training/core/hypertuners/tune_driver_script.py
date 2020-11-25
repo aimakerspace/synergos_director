@@ -252,28 +252,30 @@ def start_hp_validations(payload, host):
             payload:  "TRAINING COMPLETE -  test_project_1/test_experiment_1/optim_run_5c68e185-c28f-4159-8df4-2504ce94f4c7"
             host: RabbitMQ Server
     """
-    print("payload: ", payload)
-    if re.search(r"COMPLETE .+/optim_run_.*", payload):
+    
+    if re.search(r"TRAINING COMPLETE .+/optim_run_.*", payload):
         message_components = re.findall(r"[\w\-]+", payload)
         project_id = message_components[3]
         expt_id = message_components[4]
         run_id = message_components[5]
 
-    # check if the payload contains training complete before sending to evaluate queue
-    if message_components[0] == 'TRAINING' and message_components[1] == 'COMPLETE':
-        print("STARTING hp validations")
-        print(project_id, expt_id, run_id)
         send_evaluate_msg(project_id, expt_id, run_id)
+
+    # check if the payload contains training complete before sending to evaluate queue
+    # if message_components[0] == 'TRAINING' and message_components[1] == 'COMPLETE':
+    #     print("STARTING hp validations")
+    #     print(project_id, expt_id, run_id)
+    #     send_evaluate_msg(project_id, expt_id, run_id)
     else:
         print("NOT TRAINING. pass..")
 
-def read_search_space_path(search_space_path):
-    '''
-    Parse search_space.json for project
-    '''
-    search_space = json.load(search_space_path)
+# def read_search_space_path(search_space_path):
+#     '''
+#     Parse search_space.json for project
+#     '''
+#     search_space = json.load(search_space_path)
 
-    return search_space
+#     return search_space
 
 def str2none(v):
     '''
