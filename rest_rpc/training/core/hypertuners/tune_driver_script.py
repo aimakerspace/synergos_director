@@ -44,6 +44,8 @@ registration_records = RegistrationRecords(db_path=db_path)
 def tune_trainable(config, checkpoint_dir=None):
     """
         trainable function for tune.run()
+        This trainable function create records on the fly and store it in database.json f
+        or every search_space configuration it receives from calling tune.run()
     """
     print("config: ", config)
     expt_id = config["expt_id"]
@@ -57,7 +59,6 @@ def tune_trainable(config, checkpoint_dir=None):
         'l2_lambda': 0.0, 'lr': 0.001, 'lr_decay': 0.1, 'lr_scheduler': 'CyclicLR', 'max_lr': 0.005, 'mu': 0.1,
         'optimizer': 'SGD', 'patience': 10, 'precision_fractional': 5, 'rounds': 'tune.choice([1,2,3,4,5])', 'seed': 42, 'weight_decay': 0.0}
     '''
-
 
     # Store records into database.json
     new_run = run_records.create(
@@ -75,7 +76,15 @@ def tune_trainable(config, checkpoint_dir=None):
 
 def start_generate_hp(kwargs=None):
     """
-        Start generate hyperparameters config
+        Start generate hyperparameters configurations given the following kwargs argument
+        args:
+            kwargs: {'expt_id': 'test_experiment_1', 'project_id': 'test_project_1', n_samples: 3, 
+                    'search_space': {'algorithm': 'FedProx', 'base_lr': 0.0005, 'criterion': 'MSELoss',
+                    'delta': 0.0, 'epochs': 1, 'is_snn': False, 'l1_lambda': 0.0, 'l2_lambda': 0.0, 'lr': 0.001,
+                    'lr_decay': 0.1, 'lr_scheduler': 'CyclicLR', 'max_lr': 0.005, 'mu': 0.1, 'optimizer': 'SGD',
+                    'patience': 10, 'precision_fractional': 5, 'rounds': {'type': 'choice', 'values': [1,2,3,4,5]},
+                    'seed': 42, 'weight_decay': 0.0}}
+
     """
     ray.shutdown()
     print("start generate hp")
@@ -85,14 +94,7 @@ def start_generate_hp(kwargs=None):
     num_samples = kwargs['n_samples'] # num of federated experiments (diff experiments diff hyperparameter configurations)
     gpus_per_trial=0
 
-    ''':    
-        kwargs = {'expt_id': 'test_experiment_1', 'project_id': 'test_project_1', n_samples: 3, 'search_space': {'algorithm': 'FedProx', 
-        'base_lr': 0.0005, 'criterion': 'MSELoss', 'delta': 0.0, 'epochs': 1, 'is_snn': False, 'l1_lambda': 0.0,
-        'l2_lambda': 0.0, 'lr': 0.001, 'lr_decay': 0.1, 'lr_scheduler': 'CyclicLR', 'max_lr': 0.005, 'mu': 0.1,
-        'optimizer': 'SGD', 'patience': 10, 'precision_fractional': 5, 'rounds': {'type': 'choice', 'values': [1,2,3,4,5]}, 'seed': 42, 'weight_decay': 0.0}}
-    '''
-
-    # Mapping custom search space config into tune config
+    # Mapping custom search space config into tune config (TODO)
     search_space = kwargs['search_space']
     if search_space['rounds']['type'] == 'choice':
         search_space['rounds'] = tune.choice(search_space['rounds']['values'])
@@ -107,12 +109,14 @@ def start_generate_hp(kwargs=None):
 
     return kwargs
 
-def start_training_hp(project_id, expt_id, run_id):
-
+def start_hp_training(project_id, expt_id, run_id):
+    """
+        start hyperparameter training by sending generated hyperparemters config into the train queue
+    """
     # The below train producer logic is extracted from the post function at rest_rpc/training/models.py
 
     # Populate grid-initialising parameters
-    init_params = {'auto_align': True, 'dockerised': True, 'verbose': True, 'log_msgs': True} # request.json
+    init_params = {'auto_align': True, 'dockerised': True, 'verbose': True, 'log_msgs': True}
 
     # Retrieves expt-run supersets (i.e. before filtering for relevancy)
     retrieved_project = project_records.read(project_id=project_id)
@@ -144,23 +148,6 @@ def start_training_hp(project_id, expt_id, run_id):
     registrations = registration_records.read_all(
         filter={'project_id': project_id}
     )
-    ###########################
-    # Implementation Footnote #
-    ###########################
-
-    # [Cause]
-    # Decoupling of MFA from training cycle is required. With this, polling is
-    # skipped since alignment is not triggered
-
-    # [Problems]
-    # When alignment is not triggered, workers are not polled for their headers
-    # and schemas. Since project logs are generated via polling, not doing so
-    # results in an error for subsequent operations
-
-    # [Solution]
-    # Poll irregardless of alignment. Modify Worker's Poll endpoint to be able 
-    # to handle repeated initiialisations (i.e. create project logs if it does
-    # not exist,  otherwise retrieve)
 
     auto_align = init_params['auto_align']
     if not auto_align:
@@ -187,26 +174,13 @@ def start_training_hp(project_id, expt_id, run_id):
         print("resp_data: ", resp_data)    
 
 def send_evaluate_msg(project_id, expt_id, run_id, participant_id=None):
-    # {"test_project_1": {"action": "regress", "auto_align": true, "dockerised": true, "experiments": [{"created_at": "2020-11-24 08:32:56", "key": {"expt_id": "test_experiment_1", "project_id": "test_project_1"}, "model": [{"activation": "", "is_input": true, "l_type": "Linear", "structure": {"bias": true, "in_features": 10, "out_features": 31}}, {"activation": "", "is_input": true, "l_type": "Linear", "structure": {"bias": true, "in_features": 31, "out_features": 1}}]}], "log_msgs": true, "metas": ["evaluate"], "participants": ["test_participant_1", "test_participant_3"], "registrations": [{"created_at": "2020-11-24 08:33:03", "key": {"participant_id": "test_participant_1", "project_id": "test_project_1"}, "link": {"registration_id": "ab4536b62e2f11eba9d30242ac110003"}, "participant": {"created_at": "2020-11-24 08:33:01", "f_port": 5000, "host": "172.17.0.4", "id": "test_participant_1", "key": {"participant_id": "test_participant_1"}, "log_msgs": true, "port": 8020, "verbose": true}, "project": {"action": "regress", "created_at": "2020-11-24 08:32:53", "incentives": {"tier_1": [], "tier_2": []}, "key": {"project_id": "test_project_1"}}, "relations": {"Alignment": [{"created_at": "2020-11-24 08:33:09", "evaluate": {"X": [], "y": []}, "key": {"participant_id": "test_participant_1", "project_id": "test_project_1"}, "link": {"alignment_id": "aeb42c3a2e2f11ebb3d00242ac110003", "registration_id": "ab4536b62e2f11eba9d30242ac110003", "tag_id": "ac31cc7e2e2f11eb8f5e0242ac110003"}, "train": {"X": [], "y": []}}], "Participant": [], "Project": [], "Tag": [{"created_at": "2020-11-24 08:33:05", "evaluate": [["evaluate"]], "key": {"participant_id": "test_participant_1", "project_id": "test_project_1"}, "link": {"registration_id": "ab4536b62e2f11eba9d30242ac110003", "tag_id": "ac31cc7e2e2f11eb8f5e0242ac110003"}, "predict": [], "train": [["train"]]}]}, "role": "guest"}, {"created_at": "2020-11-24 08:33:03", "key": {"participant_id": "test_participant_3", "project_id": "test_project_1"}, "link": {"registration_id": "ab4ef43a2e2f11ebbf1d0242ac110003"}, "participant": {"created_at": "2020-11-24 08:33:01", "f_port": 5000, "host": "172.17.0.5", "id": "test_participant_3", "key": {"participant_id": "test_participant_3"}, "log_msgs": true, "port": 8020, "verbose": true}, "project": {"action": "regress", "created_at": "2020-11-24 08:32:53", "incentives": {"tier_1": [], "tier_2": []}, "key": {"project_id": "test_project_1"}}, "relations": {"Alignment": [{"created_at": "2020-11-24 08:33:09", "evaluate": {"X": [], "y": []}, "key": {"participant_id": "test_participant_3", "project_id": "test_project_1"}, "link": {"alignment_id": "aeb176c02e2f11ebb3d00242ac110003", "registration_id": "ab4ef43a2e2f11ebbf1d0242ac110003", "tag_id": "ac39427e2e2f11eb99800242ac110003"}, "train": {"X": [], "y": []}}], "Participant": [], "Project": [], "Tag": [{"created_at": "2020-11-24 08:33:05", "evaluate": [["evaluate"]], "key": {"participant_id": "test_participant_3", "project_id": "test_project_1"}, "link": {"registration_id": "ab4ef43a2e2f11ebbf1d0242ac110003", "tag_id": "ac39427e2e2f11eb99800242ac110003"}, "predict": [], "train": [["train"]]}]}, "role": "host"}], "runs": [{"algorithm": "FedProx", "base_lr": 0.0005, "created_at": "2020-11-24 08:33:32", "criterion": "MSELoss", "delta": 0.0, "epochs": 1, "is_snn": false, "key": {"expt_id": "test_experiment_1", "project_id": "test_project_1", "run_id": "optim_run_85a50653-aaed-4817-af27-afc7339dd826"}, "l1_lambda": 0.0, "l2_lambda": 0.0, "lr": 0.001, "lr_decay": 0.1, "lr_scheduler": "CyclicLR", "max_lr": 0.005, "mu": 0.1, "optimizer": "SGD", "patience": 10, "precision_fractional": 3, "rounds": 2, "seed": 42, "weight_decay": 0.0}], "verbose": true, "version": null}}
-    """ Triggers FL inference for specified project-experiment-run
-        combination within a PySyft FL grid. 
-        Note: Participants have the option to specify additional datasets
-                here for prediction. However all prediction sets will be
-                collated into a single combined prediction set to facilitate
-                prediction. Also, all prediction tags submitted here will
-                override any previously submitted prediction tags registered
-                for a specified project. This is to prevent accumulation of 
-                unsynced dataset tags (w.r.t participant's node). Hence, if
-                a participant wants to expand their testing datasets by 
-                declaring new tags, the onus is on them to declare all of it
-                per submission.
-
-        Sample payload:
-
-        {
-            "auto_align": true,
-            "dockerised": true
-        }
+    """
+        Sending an evaluate message to the evaluate queue given the following args
+        args:
+            project_id: "test_project"
+            expt_id: "test_experiment"
+            run_id: "test_run"
+            participant_id: "test_participant_1"
     """
     # Populate grid-initialising parameters
     # init_params = {'auto_align': True, 'dockerised': True, 'verbose': True, 'log_msgs': True} # request.json
@@ -261,27 +235,32 @@ def send_evaluate_msg(project_id, expt_id, run_id, participant_id=None):
         'metas': ['evaluate'],
         'version': None # defaults to final state of federated grid
     }
+
     # kwargs.update(init_params)
-    
+
     if app.config['IS_CLUSTER_MODE']:
         evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
         result = evaluate_operator.process(project_id, kwargs)
 
         data = {"run_ids": result}
 
-def start_hp_validations(loaded_kwargs, host):
-    # loaded_kwargs =  "TRAINING COMPLETE -  test_project_1/test_experiment_1/optim_run_5c68e185-c28f-4159-8df4-2504ce94f4c7"
-    print("loaded_kwargs: ", loaded_kwargs)
-    # status, project_expt_run = loaded_kwargs.split(' - ')
-    # project_id, expt_id, run_id = project_expt_run.strip().split('/')
-
-    if re.search(r"TRAINING COMPLETE .+/optim_run_.*", loaded_kwargs):
-        message_components = re.findall(r"[\w\-]+", loaded_kwargs)
+def start_hp_validations(payload, host):
+    """
+        Custom callback function for sending evaluate message after receiving 
+        the payload from completed queue
+        args:
+            payload:  "TRAINING COMPLETE -  test_project_1/test_experiment_1/optim_run_5c68e185-c28f-4159-8df4-2504ce94f4c7"
+            host: RabbitMQ Server
+    """
+    print("payload: ", payload)
+    if re.search(r"COMPLETE .+/optim_run_.*", payload):
+        message_components = re.findall(r"[\w\-]+", payload)
         project_id = message_components[3]
         expt_id = message_components[4]
         run_id = message_components[5]
 
-    if message_components[0] == 'TRAINING':
+    # check if the payload contains training complete before sending to evaluate queue
+    if message_components[0] == 'TRAINING' and message_components[1] == 'COMPLETE':
         print("STARTING hp validations")
         print(project_id, expt_id, run_id)
         send_evaluate_msg(project_id, expt_id, run_id)

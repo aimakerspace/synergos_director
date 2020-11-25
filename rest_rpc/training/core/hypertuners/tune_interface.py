@@ -19,7 +19,7 @@ from rest_rpc.connection.core.utils import (
     RunRecords
 )
 from rest_rpc.training.core.hypertuners import AbstractTuner
-from rest_rpc.training.core.hypertuners.tune_driver_script import start_generate_hp, start_training_hp
+from rest_rpc.training.core.hypertuners.tune_driver_script import start_generate_hp, start_hp_training
 
 ##################
 # Configurations #
@@ -60,7 +60,7 @@ class RayTuneTuner(AbstractTuner):
         for run in retrieved_run:
             if run['key']['run_id'].startswith('optim'):
                 # send each hyperparamer config into the train queue
-                start_training_hp(project_id, expt_id, run['key']['run_id'])
+                start_hp_training(project_id, expt_id, run['key']['run_id'])
 
 if __name__=="__main__":
 
