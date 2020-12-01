@@ -190,12 +190,16 @@ class ConsumerOperator(BaseOperator):
         # logging.info(f"Listening from {self.queue} queue: ")
         self.channel.start_consuming()
 
-    # def message_callback(self, ch, method, properties, body):
-    #     '''
-    #     callback function to execute when message received by consumer
-    #     '''
-    #     # print(" [x] %r:%r" % (method.routing_key, body))
-    #     logging.info(" [x] %r:%r" % (method.routing_key, body))
+    def poll_message(self, process_function):
+        '''
+        Call individual message
+        '''
+        method, properties, body = self.channel.basic_get(self.queue, self.auto_ack)
+        if body:
+            message_callback = generate_callback(process_function, self.host)
+            message_callback(None, method, properties, body)
+        else:
+            print (f"No message received in {self.queue}")
 
 
 # !!! Seems like putting this into class does not work.
