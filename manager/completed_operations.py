@@ -7,6 +7,7 @@
 # Generic/Built-in
 import re
 import logging
+import uuid
 
 # Libs
 import argparse
@@ -30,17 +31,22 @@ logging.basicConfig(level=logging.INFO)
 
 class CompletedConsumerOperator(ConsumerOperator):
     """ 
-    Contains management functionality to completed queue related consumer operations. 
+    Contains management functionality to completed queue related consumer operations.
+    Completed queues are exclusive to consumers and are within a fanout exchange 
     """
     def __init__(self, host=None):
         # General attributes
         super().__init__(host)
-        self.routing_key = 'SynMQ_topic_completed'
-        self.queue = 'completed'
+        self.routing_key = 'SynMQ_fanout_completed'
+        self.queue = 'completed_' + str(uuid.uuid4())
         self.auto_ack = True
+        self.exchange_name = 'SynMQ_fanout_logs'
+        self.exchange_type = 'fanout'
 
         # Connect to channel and exchange
         super().connect_channel()
+
+        self.channel.queue_declare(queue=self.queue, exclusive=True)
 
         # Network attributes
 
@@ -55,7 +61,6 @@ class CompletedConsumerOperator(ConsumerOperator):
 
 
         # Export Attributes
-
 
     ############
     # Checkers #
