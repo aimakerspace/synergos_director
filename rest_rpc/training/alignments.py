@@ -29,6 +29,7 @@ from rest_rpc.training.core.utils import (
     RPCFormatter
 )
 from rest_rpc.training.core.feature_alignment import MultipleFeatureAligner
+from manager.preprocess_operations import PreprocessProducerOperator
 
 ##################
 # Configurations #
@@ -153,115 +154,122 @@ class Alignments(Resource):
             participant metadata for alignment
         """
         try:
-            all_relevant_registrations = registration_records.read_all(
+            if app.config['IS_CLUSTER_MODE']:
+                preprocess_operator = PreprocessProducerOperator(host=app.config["SYN_MQ_HOST"])
+                result = preprocess_operator.process(project_id)
+                resp_data = [result]
+            else:
+                all_relevant_registrations = registration_records.read_all(
                 filter={'project_id': project_id}
-            ) # NOTE
-            # AFTER THIS RESIDE ON TTP
-            poller = Poller(project_id=project_id)
-            all_metadata = poller.poll(all_relevant_registrations)
+                )
+                poller = Poller(project_id=project_id)
+                all_metadata = poller.poll(all_relevant_registrations)
 
-            (X_data_headers, y_data_headers,
-             key_sequences, _) = rpc_formatter.aggregate_metadata(all_metadata)
+                (X_data_headers, y_data_headers,
+                key_sequences, _) = rpc_formatter.aggregate_metadata(all_metadata)
 
-            logging.debug(f"X_data_headers: {X_data_headers}")
-            logging.debug(f"y_data_headers: {y_data_headers}")
+                logging.debug(f"X_data_headers: {X_data_headers}")
+                logging.debug(f"y_data_headers: {y_data_headers}")
 
-            X_mfa_aligner = MultipleFeatureAligner(headers=X_data_headers)
-            X_mf_alignments = X_mfa_aligner.align()
+                X_mfa_aligner = MultipleFeatureAligner(headers=X_data_headers)
+                X_mf_alignments = X_mfa_aligner.align()
 
-            y_mfa_aligner = MultipleFeatureAligner(headers=y_data_headers)
-            y_mf_alignments = y_mfa_aligner.align()
+                y_mfa_aligner = MultipleFeatureAligner(headers=y_data_headers)
+                y_mf_alignments = y_mfa_aligner.align()
 
-            spacer_collection = rpc_formatter.alignment_to_spacer_idxs(
-                X_mf_alignments=X_mf_alignments,
-                y_mf_alignments=y_mf_alignments,
-                key_sequences=key_sequences
-            )
-
-            retrieved_alignments = []
-            for p_id, spacer_idxs in spacer_collection.items():
-
-                new_alignment = alignment_records.create(
-                    project_id=project_id,
-                    participant_id=p_id,
-                    details=spacer_idxs
-                ) 
-    
-                retrieved_alignment = alignment_records.read(
-                    project_id=project_id,
-                    participant_id=p_id
+                spacer_collection = rpc_formatter.alignment_to_spacer_idxs(
+                    X_mf_alignments=X_mf_alignments,
+                    y_mf_alignments=y_mf_alignments,
+                    key_sequences=key_sequences
                 )
 
-                assert new_alignment.doc_id == retrieved_alignment.doc_id   
-                
-                retrieved_alignments.append(retrieved_alignment)
+                retrieved_alignments = []
+                for p_id, spacer_idxs in spacer_collection.items():
 
-            #############################################
-            # Auto-alignment of global inputs & outputs #
-            #############################################
+                    new_alignment = alignment_records.create(
+                        project_id=project_id,
+                        participant_id=p_id,
+                        details=spacer_idxs
+                    ) 
+        
+                    retrieved_alignment = alignment_records.read(
+                        project_id=project_id,
+                        participant_id=p_id
+                    )
 
-            logging.debug(f"Alignment Superset: {X_mfa_aligner.superset} {len(X_mfa_aligner.superset)}")
-            layer_modules = importlib.import_module(MODULE_OF_LAYERS)
-
-            all_expts = expt_records.read_all(filter={'project_id': project_id})
-            for curr_expt in all_expts:
-            
-                expt_model = curr_expt['model']
-
-                # Check if input layer needs alignment
-                input_config = expt_model.pop(0)
-                input_layer = getattr(layer_modules, input_config['l_type'])
-                input_params = list(inspect.signature(input_layer.__init__).parameters)
-                input_key = input_params[1] # from [self, input, output, ...]
-                
-                # Only modify model inputs if handling non-image data! An 
-                # assumption for now is that all collaborating parties have 
-                # images of the same type of color scale (eg. grayscale, RGBA) 
-                if "in_channels" not in input_key:
-                    aligned_input_size = len(X_mfa_aligner.superset)
-                    input_config['structure'][input_key] = aligned_input_size
-
-                expt_model.insert(0, input_config)
-
-                logging.debug(f"Modified input config: {input_config}")
-                logging.debug(f"Modified experiment: {expt_model}")
-
-                # Check if output layer needs alignment
-                output_config = expt_model.pop(-1)
-                output_layer = getattr(layer_modules, output_config['l_type'])
-                output_params = list(inspect.signature(output_layer.__init__).parameters)
-                output_key = output_params[2] # from [self, input, output, ...]
-                aligned_output_size = len(y_mfa_aligner.superset)
-                if aligned_output_size <= 2:
-                    # Case 1: Regression or Binary classification
-                    output_config['structure'][output_key] = 1
-                else:
-                    # Case 2: Multiclass classification
-                    output_config['structure'][output_key] = aligned_output_size
+                    assert new_alignment.doc_id == retrieved_alignment.doc_id   
                     
-                    # If the no. of class labels has expanded, switch from 
-                    # linear activations to softmax variants
-                    output_config['activation'] = "softmax"
+                    retrieved_alignments.append(retrieved_alignment)
 
-                expt_model.append(output_config)
+                #############################################
+                # Auto-alignment of global inputs & outputs #
+                #############################################
 
-                logging.debug(f"Modified output config: {output_config}")
-                logging.debug(f"Modified experiment: {expt_model}")
+                logging.debug(f"Alignment Superset: {X_mfa_aligner.superset} {len(X_mfa_aligner.superset)}")
+                layer_modules = importlib.import_module(MODULE_OF_LAYERS)
 
-                expt_records.update(
-                    **curr_expt['key'], 
-                    updates={'model': expt_model}
-                )
+                all_expts = expt_records.read_all(filter={'project_id': project_id})
+                for curr_expt in all_expts:
+                
+                    expt_model = curr_expt['model']
 
-                logging.debug(f"Updated records: {expt_records.read(**curr_expt['key'])}")
-    # NOTE
+                    # Check if input layer needs alignment
+                    input_config = expt_model.pop(0)
+                    input_layer = getattr(layer_modules, input_config['l_type'])
+                    input_params = list(inspect.signature(input_layer.__init__).parameters)
+                    input_key = input_params[1] # from [self, input, output, ...]
+                    
+                    # Only modify model inputs if handling non-image data! An 
+                    # assumption for now is that all collaborating parties have 
+                    # images of the same type of color scale (eg. grayscale, RGBA) 
+                    if "in_channels" not in input_key:
+                        aligned_input_size = len(X_mfa_aligner.superset)
+                        input_config['structure'][input_key] = aligned_input_size
+
+                    expt_model.insert(0, input_config)
+
+                    logging.debug(f"Modified input config: {input_config}")
+                    logging.debug(f"Modified experiment: {expt_model}")
+
+                    # Check if output layer needs alignment
+                    output_config = expt_model.pop(-1)
+                    output_layer = getattr(layer_modules, output_config['l_type'])
+                    output_params = list(inspect.signature(output_layer.__init__).parameters)
+                    output_key = output_params[2] # from [self, input, output, ...]
+                    aligned_output_size = len(y_mfa_aligner.superset)
+                    if aligned_output_size <= 2:
+                        # Case 1: Regression or Binary classification
+                        output_config['structure'][output_key] = 1
+                    else:
+                        # Case 2: Multiclass classification
+                        output_config['structure'][output_key] = aligned_output_size
+                        
+                        # If the no. of class labels has expanded, switch from 
+                        # linear activations to softmax variants
+                        output_config['activation'] = "softmax"
+
+                    expt_model.append(output_config)
+
+                    logging.debug(f"Modified output config: {output_config}")
+                    logging.debug(f"Modified experiment: {expt_model}")
+
+                    expt_records.update(
+                        **curr_expt['key'], 
+                        updates={'model': expt_model}
+                    )
+
+                    logging.debug(f"Updated records: {expt_records.read(**curr_expt['key'])}")
+                
+                resp_data = retrieved_alignment
+            # NOTE
             success_payload = payload_formatter.construct_success_payload(
                 status=201, 
                 method="alignments.post",
                 params={
                     'project_id': project_id
                 },
-                data=retrieved_alignments
+                data=resp_data,
+                cluster_mode=app.config['IS_CLUSTER_MODE']
             )
             
             return success_payload, 201
