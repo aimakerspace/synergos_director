@@ -83,7 +83,8 @@ class BaseOperator(AbstractOperator):
     # Core Functions #
     ##################
     def create(self, run_kwarg):
-        """ Creates an operation payload to be sent to a remote queue for 
+        """ 
+            Creates an operation payload to be sent to a remote queue for 
             linearising jobs for a Synergos cluster
         """
         return json.dumps(run_kwarg, default=str, sort_keys=True)
