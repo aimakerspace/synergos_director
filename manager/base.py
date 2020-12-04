@@ -202,6 +202,15 @@ class ConsumerOperator(BaseOperator):
         else:
             print (f"No message received in {self.queue}")
 
+    def check_message_count(self):
+        '''
+        Check messages waiting in queue
+        '''
+        declared_queue = self.channel.queue_declare(self.queue, passive=True, durable=True)
+        queue_message_count = declared_queue.method.message_count
+
+        return queue_message_count
+
 
 # !!! Seems like putting this into class does not work.
 # https://stackoverflow.com/questions/57989692/how-can-i-pass-arbitrary-args-to-a-callback-function-in-rabbitmq
