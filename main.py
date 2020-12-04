@@ -8,9 +8,12 @@
 import argparse
 import logging
 from subprocess import Popen, PIPE
+from multiprocessing import Process
 
 # Custom
 from rest_rpc import app
+from rest_rpc.training.core.hypertuners.tune_driver_script import start_hp_validations
+from manager.completed_operations import CompletedConsumerOperator
 
 ##################
 # Configurations #
@@ -31,6 +34,10 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def poll_cycle(host):
+    completed_consume = CompletedConsumerOperator(host)
+    completed_consume.listen_message(start_hp_validations)
 
 ###########
 # Scripts #
@@ -79,6 +86,9 @@ if __name__ == "__main__":
     #      stdout=PIPE,
     #      stderr=PIPE
     #      )
+
+    p = Process(target=poll_cycle, args=(args.mqhost,))
+    p.start()
 
     # Run flask
     app.run(host="0.0.0.0", port=5000, debug=False)
