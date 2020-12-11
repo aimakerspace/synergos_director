@@ -82,22 +82,22 @@ def start_generate_hp(kwargs=None):
                     'search_space': {'algorithm': 'FedProx', 'base_lr': 0.0005, 'criterion': 'MSELoss',
                     'delta': 0.0, 'epochs': 1, 'is_snn': False, 'l1_lambda': 0.0, 'l2_lambda': 0.0, 'lr': 0.001,
                     'lr_decay': 0.1, 'lr_scheduler': 'CyclicLR', 'max_lr': 0.005, 'mu': 0.1, 'optimizer': 'SGD',
-                    'patience': 10, 'precision_fractional': 5, 'rounds': {'type': 'choice', 'values': [1,2,3,4,5]},
+                    'patience': 10, 'precision_fractional': 5, 'rounds': {'_type': 'choice', '_value': [1,2,3,4,5]},
                     'seed': 42, 'weight_decay': 0.0}}
 
     """
-    ray.shutdown()
+    # ray.shutdown()
     print("start generate hp")
     # ray.init(local_mode=True, ignore_reinit_error=True)
-    ray.init(local_mode=True, num_cpus=1, num_gpus=0)
+    ray.init(local_mode=False, num_cpus=1, num_gpus=0)
 
     num_samples = kwargs['n_samples'] # num of federated experiments (diff experiments diff hyperparameter configurations)
     gpus_per_trial=0
 
     # Mapping custom search space config into tune config (TODO)
     search_space = kwargs['search_space']
-    if search_space['rounds']['type'] == 'choice':
-        search_space['rounds'] = tune.choice(search_space['rounds']['values'])
+    if search_space['rounds']['_type'] == 'choice':
+        search_space['rounds'] = tune.choice(search_space['rounds']['_value'])
 
     result = tune.run(
         tune_trainable,
@@ -184,7 +184,7 @@ def send_evaluate_msg(project_id, expt_id, run_id, participant_id=None):
     """
     # Populate grid-initialising parameters
     # init_params = {'auto_align': True, 'dockerised': True, 'verbose': True, 'log_msgs': True} # request.json
-
+    
     # Retrieves expt-run supersets (i.e. before filtering for relevancy)
     retrieved_project = project_records.read(project_id=project_id)
     print("retrieved_project: ", retrieved_project)
@@ -240,7 +240,9 @@ def send_evaluate_msg(project_id, expt_id, run_id, participant_id=None):
 
     if app.config['IS_CLUSTER_MODE']:
         evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
+        print("[[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]]]]]]] evaluteproducer init")
         result = evaluate_operator.process(project_id, kwargs)
+        print("[[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]]]]]]] evaluteproducer send msg")
 
         data = {"run_ids": result}
 
@@ -258,8 +260,9 @@ def start_hp_validations(payload, host):
         project_id = message_components[3]
         expt_id = message_components[4]
         run_id = message_components[5]
-
+        print ("[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]Sending Evals")
         send_evaluate_msg(project_id, expt_id, run_id)
+        print ("[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]SENT EVALS MSG")
 
     # check if the payload contains training complete before sending to evaluate queue
     # if message_components[0] == 'TRAINING' and message_components[1] == 'COMPLETE':
@@ -313,7 +316,7 @@ if __name__=='__main__':
     '''
     search_space = {
         'algorithm': 'FedProx',
-        'rounds': {"type": "choice", "values": [1,2,3,4,5]},
+        'rounds': {"_type": "choice", "_value": [1,2,3,4,5]},
         'epochs': 1,
         'lr': 0.001,
         'weight_decay': 0.0,
