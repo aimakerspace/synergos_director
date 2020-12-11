@@ -8,6 +8,9 @@
 import logging
 import os
 import time
+from multiprocessing import Process
+# from manager.completed_operations import CompletedConsumerOperator
+# import re
 
 # Libs
 import jsonschema
@@ -21,6 +24,8 @@ from rest_rpc.connection.core.utils import TopicalPayload, RunRecords
 # from rest_rpc.training.core.hypertuners import NNITuner, optim_prefix
 from rest_rpc.evaluation.core.utils import ValidationRecords
 # from rest_rpc.evaluation.validations import val_output_model
+# from rest_rpc.training.core.hypertuners import RayTuneTuner
+from rest_rpc.training.core.hypertuners.tune_interface import RayTuneTuner
 
 ##################
 # Configurations #
@@ -40,6 +45,10 @@ out_dir = app.config['OUT_DIR']
 db_path = app.config['DB_PATH']
 run_records = RunRecords(db_path=db_path)
 validation_records = ValidationRecords(db_path=db_path)
+
+optim_prefix = 'optim_run_'
+
+# received_counter = 0
 
 ###########################################################
 # Models - Used for marshalling (i.e. moulding responses) #
@@ -134,6 +143,22 @@ val_output_model = ns_api.inherit(
 )
 
 payload_formatter = TopicalPayload(SUBJECT, ns_api, val_output_model)
+#####################
+# Wrapper Functions #
+#####################
+
+def run_hypertuner(project_id, expt_id, tuning_params):
+    '''
+        Wrapper function to run ray_tuner to avoid process conflict 
+        when called within optimizations API
+    '''
+    ray_tuner = RayTuneTuner()
+    ray_tuner.tune(
+        project_id=project_id,
+        expt_id=expt_id,
+        search_space=tuning_params['search_space'],
+        n_samples=tuning_params['n_samples']
+    )
 
 #############
 # Resources #
@@ -182,7 +207,7 @@ class Optimizations(Resource):
 
 
     @ns_api.doc("trigger_optimizations")
-    @ns_api.marshal_with(payload_formatter.plural_model)
+    # @ns_api.marshal_with(payload_formatter.plural_model)
     def post(self, project_id, expt_id):
         """ Creates sets of hyperparameters using a specified AutoML algorithm,
             within the scope of a user-specified search space, and conducts a 
@@ -212,7 +237,8 @@ class Optimizations(Resource):
                 'use_annotation': True,
                 'dockerised': True,
                 'verbose': True,
-                'log_msgs': True
+                'log_msgs': True,
+                'n_samples': 2
             }
         """
         # Populate hyperparameter tuning parameters
@@ -220,16 +246,27 @@ class Optimizations(Resource):
 
         # Create log directory
         optim_log_dir = os.path.join(out_dir, project_id, expt_id)
+        print (">>>>>>>>>>>>>>>>>>Before RAYTUNER")
 
+        ####################################################################
+        # Raytuner has to be called as a separate process outside flask    #
+        # context, otherwise there will be conflict in unavailable servers #
+        # within running multiple parallel subprocesses within the context #
+        # of flask                                                         #
+        ####################################################################
+        p = Process(target=run_hypertuner, args=(project_id, expt_id, tuning_params,))
+        p.start()
+
+        print (">>>>>>>>>>>>>>>>>>>After RayTUNER")
+
+        '''
         nni_tuner = NNITuner(log_dir=optim_log_dir)
         nni_expt = nni_tuner.tune(
             project_id=project_id, 
             expt_id=expt_id, 
             **tuning_params
-        )
-        # above here add new class RayTuner to output 
-        # 
-
+        )        
+        
         logging.debug(f"NNI Experiment status: {nni_expt.get_experiment_status()}")
         curr_status = nni_expt.get_experiment_status()['status']
         while curr_status == "RUNNING":
@@ -237,12 +274,36 @@ class Optimizations(Resource):
             time.sleep(1)
             curr_status = nni_expt.get_experiment_status()['status']
         logging.info(f"NNI Experiment has completed! Fetching results...") 
-
+        '''
 
         filter_keys = request.view_args
         search_space = tuning_params['search_space']
+        
+        '''
+        # Experimental feature
+        # Blocking before to ensure validations complete before returning response
+        validations_checker = CompletedConsumerOperator(app.config['SYN_MQ_HOST'])
+
+        def count_validations(payload, host):
+            global received_counter
+            print (">>>>>>>>>>>RECEIVED COUNTER = ", received_counter)
+            if re.search(r"VALIDATION COMPLETE - .+/optim_run_.*", payload):
+                received_counter += 1
+                if received_counter >= tuning_params['n_samples']:
+                    validations_checker.connection.close()
+                    
+        validations_checker.listen_message(count_validations)
+
+        # End blocking
+        '''
+
         retrieved_validations = validation_records.read_all(filter=filter_keys)
-        optim_validations = []
+        optim_validations = [
+            record 
+            for record in retrieved_validations
+            if optim_prefix in record['key']['run_id']
+        ]
+
         for record in retrieved_validations:
 
             # Check if validation record belongs to an optimization run
@@ -268,7 +329,7 @@ class Optimizations(Resource):
                         assert value <= tuning_values[-1]
                 
         if optim_validations:
-            
+
             success_payload = payload_formatter.construct_success_payload(
                 status=200,
                 method="optimizations.post",
