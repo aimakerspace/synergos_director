@@ -96,8 +96,33 @@ def start_generate_hp(kwargs=None):
 
     # Mapping custom search space config into tune config (TODO)
     search_space = kwargs['search_space']
-    if search_space['rounds']['_type'] == 'choice':
-        search_space['rounds'] = tune.choice(search_space['rounds']['_value'])
+    for hyperparameter_key in search_space.keys():
+        try:
+            if search_space[hyperparameter_key]['_type'] == 'choice':
+                search_space[hyperparameter_key] = tune.choice(
+                    search_space[hyperparameter_key]['_value']
+                    )
+
+            elif search_space[hyperparameter_key]['_type'] == 'uniform':
+                search_space[hyperparameter_key] = tune.uniform(
+                    search_space[hyperparameter_key]['_value'][0],
+                    search_space[hyperparameter_key]['_value'][1]
+                    )
+            
+            elif search_space[hyperparameter_key]['_type'] == 'loguniform':
+                search_space[hyperparameter_key] = tune.loguniform(
+                    search_space[hyperparameter_key]['_values'][0],
+                    search_space[hyperparameter_key]['_values'][1]
+                )
+
+            elif search_space[hyperparameter_key]['_type'] == 'randint':
+                search_space[hyperparameter_key] = tune.randint(
+                    search_space[hyperparameter_key]['_values'][0],
+                    search_space[hyperparameter_key]['_values'][1]
+                )
+        
+        except:
+            continue
 
     result = tune.run(
         tune_trainable,
@@ -240,9 +265,7 @@ def send_evaluate_msg(project_id, expt_id, run_id, participant_id=None):
 
     if app.config['IS_CLUSTER_MODE']:
         evaluate_operator = EvaluateProducerOperator(host=app.config["SYN_MQ_HOST"])
-        print("[[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]]]]]]] evaluteproducer init")
         result = evaluate_operator.process(project_id, kwargs)
-        print("[[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]]]]]]] evaluteproducer send msg")
 
         data = {"run_ids": result}
 
@@ -260,9 +283,7 @@ def start_hp_validations(payload, host):
         project_id = message_components[3]
         expt_id = message_components[4]
         run_id = message_components[5]
-        print ("[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]Sending Evals")
         send_evaluate_msg(project_id, expt_id, run_id)
-        print ("[[[[[[[[[[[[[[DEBUG]]]]]]]]]]]SENT EVALS MSG")
 
     # check if the payload contains training complete before sending to evaluate queue
     # if message_components[0] == 'TRAINING' and message_components[1] == 'COMPLETE':
