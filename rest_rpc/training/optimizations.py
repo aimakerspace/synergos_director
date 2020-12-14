@@ -20,7 +20,11 @@ from flask_restx import Namespace, Resource, fields
 
 # Custom
 from rest_rpc import app
-from rest_rpc.connection.core.utils import TopicalPayload, RunRecords
+from rest_rpc.connection.core.utils import (
+    TopicalPayload,
+    RunRecords,
+    ExperimentRecords
+)
 # from rest_rpc.training.core.hypertuners import NNITuner, optim_prefix
 from rest_rpc.evaluation.core.utils import ValidationRecords
 # from rest_rpc.evaluation.validations import val_output_model
@@ -45,6 +49,7 @@ out_dir = app.config['OUT_DIR']
 db_path = app.config['DB_PATH']
 run_records = RunRecords(db_path=db_path)
 validation_records = ValidationRecords(db_path=db_path)
+expt_records = ExperimentRecords(db_path=db_path)
 
 optim_prefix = 'optim_run_'
 
@@ -246,57 +251,84 @@ class Optimizations(Resource):
 
         # Create log directory
         optim_log_dir = os.path.join(out_dir, project_id, expt_id)
-        print (">>>>>>>>>>>>>>>>>>Before RAYTUNER")
+        if app.config['IS_CLUSTER_MODE']:
+            print (">>>>>>>>>>>>>>>>>>Before RAYTUNER")
 
-        ####################################################################
-        # Raytuner has to be called as a separate process outside flask    #
-        # context, otherwise there will be conflict in unavailable servers #
-        # within running multiple parallel subprocesses within the context #
-        # of flask                                                         #
-        ####################################################################
-        p = Process(target=run_hypertuner, args=(project_id, expt_id, tuning_params,))
-        p.start()
+            ####################################################################
+            # Raytuner has to be called as a separate process outside flask    #
+            # context, otherwise there will be conflict in unavailable servers #
+            # within running multiple parallel subprocesses within the context #
+            # of flask                                                         #
+            ####################################################################
+            p = Process(target=run_hypertuner, args=(project_id, expt_id, tuning_params,))
+            p.start()
+            p.join()
 
-        print (">>>>>>>>>>>>>>>>>>>After RayTUNER")
+            print (">>>>>>>>>>>>>>>>>>After RayTUNER")
 
-        '''
-        nni_tuner = NNITuner(log_dir=optim_log_dir)
-        nni_expt = nni_tuner.tune(
-            project_id=project_id, 
-            expt_id=expt_id, 
-            **tuning_params
-        )        
-        
-        logging.debug(f"NNI Experiment status: {nni_expt.get_experiment_status()}")
-        curr_status = nni_expt.get_experiment_status()['status']
-        while curr_status == "RUNNING":
-            logging.info(f"NNI Experiment is still running, idling for now...")
-            time.sleep(1)
+            '''
+            nni_tuner = NNITuner(log_dir=optim_log_dir)
+            nni_expt = nni_tuner.tune(
+                project_id=project_id, 
+                expt_id=expt_id, 
+                **tuning_params
+            )        
+            
+            logging.debug(f"NNI Experiment status: {nni_expt.get_experiment_status()}")
             curr_status = nni_expt.get_experiment_status()['status']
-        logging.info(f"NNI Experiment has completed! Fetching results...") 
+            while curr_status == "RUNNING":
+                logging.info(f"NNI Experiment is still running, idling for now...")
+                time.sleep(1)
+                curr_status = nni_expt.get_experiment_status()['status']
+            logging.info(f"NNI Experiment has completed! Fetching results...") 
+            '''
+
+            filter_keys = request.view_args
+            search_space = tuning_params['search_space']
+            
+            '''
+            # Experimental feature
+            # Blocking before to ensure validations complete before returning response
+            validations_checker = CompletedConsumerOperator(app.config['SYN_MQ_HOST'])
+
+            def count_validations(payload, host):
+                global received_counter
+                print (">>>>>>>>>>>RECEIVED COUNTER = ", received_counter)
+                if re.search(r"VALIDATION COMPLETE - .+/optim_run_.*", payload):
+                    received_counter += 1
+                    if received_counter >= tuning_params['n_samples']:
+                        validations_checker.connection.close()
+                        
+            validations_checker.listen_message(count_validations)
+
+            # End blocking
+            '''
+            
+            runs = run_records.read_all(filter=filter_keys)
+
+            optim_runs = [
+                run 
+                for run in runs 
+                if optim_prefix in run['key']['run_id']
+            ]
+
+            if optim_runs:
+
+                success_payload = payload_formatter.construct_success_payload(
+                    status=200,
+                    method="optimizations.post",
+                    params=request.view_args,
+                    data=optim_runs
+                )
+                return success_payload, 200
+
+            else:
+                ns_api.abort(
+                    code=404, 
+                    message=f"Optimizations do not exist for specified keyword filters!"
+                )
+
         '''
-
-        filter_keys = request.view_args
-        search_space = tuning_params['search_space']
-        
-        '''
-        # Experimental feature
-        # Blocking before to ensure validations complete before returning response
-        validations_checker = CompletedConsumerOperator(app.config['SYN_MQ_HOST'])
-
-        def count_validations(payload, host):
-            global received_counter
-            print (">>>>>>>>>>>RECEIVED COUNTER = ", received_counter)
-            if re.search(r"VALIDATION COMPLETE - .+/optim_run_.*", payload):
-                received_counter += 1
-                if received_counter >= tuning_params['n_samples']:
-                    validations_checker.connection.close()
-                    
-        validations_checker.listen_message(count_validations)
-
-        # End blocking
-        '''
-
         retrieved_validations = validation_records.read_all(filter=filter_keys)
         optim_validations = [
             record 
@@ -343,3 +375,4 @@ class Optimizations(Resource):
                 code=404, 
                 message=f"Optimizations do not exist for specified keyword filters!"
             ) 
+        '''
