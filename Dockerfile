@@ -66,25 +66,20 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git\
     pciutils
 
-COPY requirements.txt ./
+RUN pip install --upgrade pip \
+ && pip install --upgrade setuptools wheel
 
-RUN pip install --upgrade pip setuptools wheel \
- && pip install --no-cache-dir -r requirements.txt
+ADD . /director
+WORKDIR /director
 
-# Raytune lib
-RUN apt-get install -y rsync
-RUN pip install setproctitle
-RUN pip install -U ray
-RUN pip install hyperopt
-
-ADD . /ttp
-WORKDIR /ttp
+RUN pip install ./synergos_algorithm
+RUN pip install ./synergos_archive
+RUN pip install ./synergos_logger
+RUN pip install ./synergos_manager
+RUN pip install ./synergos_rest
 
 EXPOSE 5000
-EXPOSE 8020
 EXPOSE 8080
-EXPOSE 5672
-EXPOSE 15672
 
 ########################
 # New Image - Debugger #
@@ -93,7 +88,7 @@ EXPOSE 15672
 FROM base as debug
 RUN pip install ptvsd
 
-WORKDIR /ttp
+WORKDIR /director
 EXPOSE 5678
 CMD python -m ptvsd --host 0.0.0.0 --port 5678 --wait main.py
 
@@ -103,6 +98,6 @@ CMD python -m ptvsd --host 0.0.0.0 --port 5678 --wait main.py
 
 FROM base as prod
 
-WORKDIR /ttp
-ENTRYPOINT ["python", "./main.py", "--cluster", "true"]
-# CMD ["--help"]
+WORKDIR /director
+ENTRYPOINT ["python", "./main.py"]
+CMD ["--help"]

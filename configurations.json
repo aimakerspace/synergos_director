@@ -1,0 +1,13 @@
+{
+    "synergos_": {},
+    
+    "synergos_logger": {
+
+    },
+
+    "synergos_mq": {
+        "host": "172.17.0.2",
+        "ports": [5672, 15672]
+
+    }
+}
