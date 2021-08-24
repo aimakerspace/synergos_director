@@ -33,15 +33,15 @@
 # # Step 2: Clone, build & setup REST-RPC #
 # #########################################
 
-# ADD . /ttp
-# WORKDIR /ttp
+# ADD . /director
+# WORKDIR /director
 
 # RUN pip install --upgrade pip setuptools wheel \
 #  && pip install --no-cache-dir -r requirements.txt
 
-# RUN unzip -q '/ttp/etc/*.zip' -d /ttp/etc/tmp \
-#  && pip install /ttp/etc/tmp/${PYSYFT_CHECKPOINT} \
-#  && pip install /ttp/etc/tmp/${SYFT_PROTO_CHECKPOINT}
+# RUN unzip -q '/director/etc/*.zip' -d /director/etc/tmp \
+#  && pip install /director/etc/tmp/${PYSYFT_CHECKPOINT} \
+#  && pip install /director/etc/tmp/${SYFT_PROTO_CHECKPOINT}
 
 # #######################################################
 # # Step 3: Expose relevant connection points & run app #
@@ -69,14 +69,23 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 RUN pip install --upgrade pip \
  && pip install --upgrade setuptools wheel
 
-ADD . /director
-WORKDIR /director
+ADD ./synergos_algorithm /director/synergos_algorithm
+RUN pip install /director/synergos_algorithm
 
-RUN pip install ./synergos_algorithm
-RUN pip install ./synergos_archive
-RUN pip install ./synergos_logger
-RUN pip install ./synergos_manager
-RUN pip install ./synergos_rest
+ADD ./synergos_archive /director/synergos_archive
+RUN pip install /director/synergos_archive
+
+ADD ./synergos_logger /director/synergos_logger
+RUN pip install /director/synergos_logger
+
+ADD ./synergos_manager /director/synergos_manager
+RUN pip install /director/synergos_manager
+
+ADD ./synergos_rest /director/synergos_rest
+RUN pip install /director/synergos_rest
+
+WORKDIR /director
+ADD . /director
 
 EXPOSE 5000
 EXPOSE 8080
