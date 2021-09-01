@@ -326,32 +326,31 @@ if __name__ == "__main__":
     # [Solution]
     # Import system modules only after loggers have been intialised.
 
+    # Apply custom configurations on server
     from rest_rpc import initialize_app
-    
+    app = initialize_app(settings=config)
+
     from rest_rpc.training.alignments import archive_alignment_outputs
     from rest_rpc.training.models import archive_training_outputs
     from rest_rpc.training.optimizations import archive_optimization_outputs
     from rest_rpc.evaluation.validations import archive_validation_outputs
         
-    # Initialize subprocess to pull from completed queue
-    archival_process = Process(
-        target=archive_cycle, 
-        kwargs={
-            **mq_kwargs,
-            'align_ops': archive_alignment_outputs,
-            'train_ops': archive_training_outputs,
-            'optim_ops': archive_optimization_outputs,
-            'valid_ops': archive_validation_outputs,
-            'logger': node_logger
-        }
-    )
-
     try:
         # Start background archival process
+        archival_process = Process(
+            target=archive_cycle, 
+            kwargs={
+                **mq_kwargs,
+                'align_ops': archive_alignment_outputs,
+                'train_ops': archive_training_outputs,
+                'optim_ops': archive_optimization_outputs,
+                'valid_ops': archive_validation_outputs,
+                'logger': node_logger
+            }
+        )
         archival_process.start()
         
         # Start main REST server
-        app = initialize_app(settings=config)
         app.run(host="0.0.0.0", port=5000)
 
     finally:
