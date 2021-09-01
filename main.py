@@ -11,8 +11,10 @@
 import argparse
 import logging
 import os
+import time
 import uuid
-from pathlib import Path
+from multiprocessing import Process
+from typing import Dict, List, Callable, Any
 
 # Libs
 import ray
@@ -20,12 +22,12 @@ import ray
 # Custom
 import config
 from config import (
+    SRC_DIR, RETRY_INTERVAL,
     capture_system_snapshot,
     configure_node_logger, 
-    configure_sysmetric_logger,
-    count_available_cpus,
-    count_available_gpus
+    configure_sysmetric_logger
 )
+from synmanager.completed_operations import CompletedConsumerOperator
 
 ##################
 # Configurations #
@@ -38,6 +40,28 @@ SECRET_KEY = "synergos_director" #os.urandom(24) # secret key
 #############
 # Functions #
 #############
+
+def construct_queue_kwargs(**kwargs):
+    """ Extracts queue configuration values for linking server to said queue
+
+    Args:
+        kwargs: Any user input captured 
+    Returns:
+        Queue configurations (dict)
+    """
+    queue_config = kwargs['queue']
+
+    queue_variant = queue_config[0]
+    if queue_variant not in ["rabbitmq"]:
+        raise argparse.ArgumentTypeError(
+            f"Specified queue variant '{queue_variant}' is not supported!"
+        )
+
+    server = queue_config[1]
+    port = int(queue_config[2])
+
+    return {'host': server, 'port': port}
+
 
 def construct_logger_kwargs(**kwargs) -> dict:
     """ Extracts user-parsed values and re-mapping them into parameters 
@@ -86,6 +110,116 @@ def construct_logger_kwargs(**kwargs) -> dict:
         'censor_keys': censor_keys
     }
 
+
+def archive_cycle(
+    host: str,
+    port: int,
+    align_ops: Callable,
+    train_ops: Callable,
+    optim_ops: Callable,
+    valid_ops: Callable,
+    **kwargs
+):
+    """ Run endless loop to poll messages across different queues and run 
+        respective callback operations. The hierachy of priority between queues, 
+        starting from the highest is as follows: 
+            Preprocess -> Train -> Evaluate (Validation or Prediction)
+
+    Args:
+        host (str): IP of server where queue is hosted on
+        port (int): Port of server allocated to queue
+        preprocess_job (Callable): Function to execute when handling a polled
+            preprocessing job from the "Preprocess" queue
+        train_job (Callable): Function to execute when handling a polled
+            training job from the "Train" queue
+        validate_job (Callable): Function to execute when handling a polled
+            validation job from the "Evaluate" queue
+        predict_job (Callable): Function to execute when handling a polled
+            prediction job from the "Evaluate" queue
+    """
+    def archival_ops(
+        process: str, 
+        filters: List[str],
+        outputs: Dict[str, Any]
+    ) -> Callable:
+        """
+        
+        Args:
+            process (str):
+            filters (list(str)):
+            outputs (dict):
+        """
+        OPS_MAPPINGS = {
+            'preprocess': align_ops,
+            'train': train_ops,
+            'optimize': optim_ops,
+            'validate': valid_ops
+        }
+
+        selected_ops = OPS_MAPPINGS[process]
+        return selected_ops(filters, outputs)
+
+    logger = kwargs.get('logger', logging)
+
+    completed_consumer = CompletedConsumerOperator(host=host, port=port)
+
+    try:
+        ###########################
+        # Implementation Footnote #
+        ###########################
+
+        # [Cause]
+        # When there are multiple grids involved, there is the capacity for
+        # the Synergos grid to write results concurrently to "database.json"
+
+        # [Problems]
+        # "database.json" is managed by TinyDB, which does not scale well in
+        # terms of concurrency. 
+
+        # [Solution]
+        # Future versions may see database substitution. For now, use queue to
+        # linearize archival processes. All jobs have been split into 2 
+        # processes - functional and archival. Functional processes will be 
+        # executed in TTP(s), while archival processes will be sent as messages
+        # into the completed queue, where the director will be the only 
+        # component writing to "database.json".  
+
+        completed_consumer.connect()
+
+        while True:
+
+            # try:
+            completed_messages = completed_consumer.check_message_count()
+
+            if completed_messages > 0:
+                completed_consumer.poll_message(archival_ops)
+
+            else:
+                logger.synlog.info(
+                    f"No archival operations in queue! Waiting for {RETRY_INTERVAL} second...",
+                    ID_path=os.path.join(SRC_DIR, "config.py"), 
+                    ID_function=archive_cycle.__name__
+                )
+         
+            # except Exception as e:
+            #     logger.synlog.error(
+            #         f"Something went wrong while running a job! Error: {e}",
+            #         ID_path=os.path.join(SRC_DIR, "config.py"), 
+            #         ID_function=poll_cycle.__name__
+            #     )
+
+            time.sleep(RETRY_INTERVAL)
+    
+    except KeyboardInterrupt:
+        logger.synlog.info(
+            "[Ctrl-C] recieved! Archival processes terminated.",
+            ID_path=os.path.join(SRC_DIR, "config.py"), 
+            ID_function=archive_cycle.__name__
+        )
+
+    finally:
+        completed_consumer.disconnect()
+
 ###########
 # Scripts #
 ###########
@@ -102,6 +236,15 @@ if __name__ == "__main__":
         type=str,
         default=f"director/{uuid.uuid4()}",
         help="ID of orchestrating party. e.g. --id TTP"
+    )
+
+    parser.add_argument(
+        "--queue",
+        "-mq",
+        type=str,
+        default=["rabbitmq"],
+        nargs="+",
+        help="Type of queue framework to use. eg. --queue rabbitmq 127.0.0.1 5672"
     )
 
     parser.add_argument(
@@ -150,6 +293,13 @@ if __name__ == "__main__":
         **system_kwargs
     )
 
+    # Bind node to queue
+    mq_kwargs = construct_queue_kwargs(**input_kwargs)
+    node_logger.synlog.info(
+        f"Orchestrator `{server_id}` -> Snapshot of Queue Parameters",
+        **mq_kwargs
+    )
+
     # Set up sysmetric logger
     sysmetric_logger = configure_sysmetric_logger(**logger_kwargs)
     sysmetric_logger.track(
@@ -177,13 +327,40 @@ if __name__ == "__main__":
     # Import system modules only after loggers have been intialised.
 
     from rest_rpc import initialize_app
+    
+    from rest_rpc.training.alignments import archive_alignment_outputs
+    from rest_rpc.training.models import archive_training_outputs
+    from rest_rpc.training.optimizations import archive_optimization_outputs
+    from rest_rpc.evaluation.validations import archive_validation_outputs
         
+    # Initialize subprocess to pull from completed queue
+    archival_process = Process(
+        target=archive_cycle, 
+        kwargs={
+            **mq_kwargs,
+            'align_ops': archive_alignment_outputs,
+            'train_ops': archive_training_outputs,
+            'optim_ops': archive_optimization_outputs,
+            'valid_ops': archive_validation_outputs,
+            'logger': node_logger
+        }
+    )
+
     try:
-        ### Add subprocess to pull from completed queue ###
-
-
+        # Start background archival process
+        archival_process.start()
+        
+        # Start main REST server
         app = initialize_app(settings=config)
         app.run(host="0.0.0.0", port=5000)
 
     finally:
+        # Stop systemetic logging
         sysmetric_logger.terminate()
+        
+        # Stop archival processes
+        archival_process.terminate()
+        archival_process.join()
+        archival_process.close
+
+
