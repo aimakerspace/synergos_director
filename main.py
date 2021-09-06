@@ -24,6 +24,8 @@ import config
 from config import (
     SRC_DIR, RETRY_INTERVAL,
     capture_system_snapshot,
+    configure_cpu_allocation,
+    configure_gpu_allocation,
     configure_node_logger, 
     configure_sysmetric_logger
 )
@@ -109,6 +111,20 @@ def construct_logger_kwargs(**kwargs) -> dict:
         'debugging_fields': debugging_fields,
         'censor_keys': censor_keys
     }
+
+
+def construct_resource_kwargs(**kwargs) -> dict:
+    """ Extracts user-parsed values and re-mapping them into parameters 
+        corresponding to resource allocations
+
+    Args:
+        kwargs: Any user input captured 
+    Returns:
+        Resource configurations (dict)
+    """
+    cpus = kwargs['cpus']
+    gpus = kwargs['gpus']
+    return {'cpus': cpus, 'gpus': gpus}
 
 
 def archive_cycle(
@@ -257,6 +273,25 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--logging_resolution",
+        "-r",
+        type=int,
+        help="Interval to wait before system usage is logged again"
+    )   
+
+    parser.add_argument(
+        "--cpus",
+        type=int,
+        help="No. of CPU cores to allocate for this service. If not specified, auto-detect CPU count"
+    )    
+
+    parser.add_argument(
+        "--gpus",
+        type=int,
+        help="No. of GPU cores to allocate for this service. If not specified, auto-detect GPU count"
+    )   
+
+    parser.add_argument(
         '--censored',
         "-c",
         action='store_true',
@@ -273,6 +308,11 @@ if __name__ == "__main__":
     )
 
     input_kwargs = vars(parser.parse_args())
+
+    # Parse resource allocations
+    res_kwargs = construct_resource_kwargs(**input_kwargs)
+    configure_cpu_allocation(**res_kwargs)
+    configure_gpu_allocation(**res_kwargs)
 
     # Set up core logger
     server_id = input_kwargs['id']
