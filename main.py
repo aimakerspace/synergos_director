@@ -135,6 +135,7 @@ def archive_cycle(
     train_ops: Callable,
     optim_ops: Callable,
     valid_ops: Callable,
+    predict_ops: Callable,
     **kwargs
 ):
     """ Run endless loop to poll messages across different queues and run 
@@ -171,7 +172,8 @@ def archive_cycle(
             'preprocess': align_ops,
             'train': train_ops,
             'optimize': optim_ops,
-            'validate': valid_ops
+            'validate': valid_ops,
+            'predict': predict_ops
         }
 
         selected_ops = OPS_MAPPINGS[process]
@@ -376,7 +378,7 @@ if __name__ == "__main__":
     from rest_rpc.training.models import archive_training_outputs
     from rest_rpc.training.optimizations import archive_optimization_outputs
     from rest_rpc.evaluation.validations import archive_validation_outputs
-        
+    from rest_rpc.evaluation.predictions import archive_prediction_outputs
     try:
         # Start background archival process
         archival_process = Process(
@@ -387,6 +389,7 @@ if __name__ == "__main__":
                 'train_ops': archive_training_outputs,
                 'optim_ops': archive_optimization_outputs,
                 'valid_ops': archive_validation_outputs,
+                'predict_ops': archive_prediction_outputs,
                 'logger': node_logger
             }
         )
