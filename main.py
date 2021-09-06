@@ -18,6 +18,7 @@ from typing import Dict, List, Callable, Any
 
 # Libs
 import ray
+from waitress import serve
 
 # Custom
 import config
@@ -158,7 +159,8 @@ def archive_cycle(
         filters: List[str],
         outputs: Dict[str, Any]
     ) -> Callable:
-        """
+        """ Helper function to process archive messages retrieved from the
+            completed queue
         
         Args:
             process (str):
@@ -391,7 +393,7 @@ if __name__ == "__main__":
         archival_process.start()
         
         # Start main REST server
-        app.run(host="0.0.0.0", port=5000)
+        serve(app, host='0.0.0.0', port=5000)
 
     finally:
         # Stop systemetic logging
