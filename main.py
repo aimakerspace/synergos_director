@@ -401,5 +401,3 @@ if __name__ == "__main__":
         archival_process.terminate()
         archival_process.join()
         archival_process.close
-
-
