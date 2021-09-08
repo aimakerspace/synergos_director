@@ -182,6 +182,7 @@ def archive_cycle(
     logger = kwargs.get('logger', logging)
 
     completed_consumer = CompletedConsumerOperator(host=host, port=port)
+    completed_consumer.connect()
 
     try:
         ###########################
@@ -204,31 +205,7 @@ def archive_cycle(
         # into the completed queue, where the director will be the only 
         # component writing to "database.json".  
 
-        completed_consumer.connect()
-
-        while True:
-
-            # try:
-            completed_messages = completed_consumer.check_message_count()
-
-            if completed_messages > 0:
-                completed_consumer.poll_message(archival_ops)
-
-            else:
-                logger.synlog.info(
-                    f"No archival operations in queue! Waiting for {RETRY_INTERVAL} second...",
-                    ID_path=os.path.join(SRC_DIR, "config.py"), 
-                    ID_function=archive_cycle.__name__
-                )
-         
-            # except Exception as e:
-            #     logger.synlog.error(
-            #         f"Something went wrong while running a job! Error: {e}",
-            #         ID_path=os.path.join(SRC_DIR, "config.py"), 
-            #         ID_function=poll_cycle.__name__
-            #     )
-
-            time.sleep(RETRY_INTERVAL)
+        completed_consumer.listen_message(archival_ops)
     
     except KeyboardInterrupt:
         logger.synlog.info(
