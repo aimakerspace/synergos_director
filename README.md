@@ -2,9 +2,28 @@
 
 Main job orchestrator for a synergos cluster.
 
-![Synergos Components](./docs/images/syncluster_setup.png)*Setting up Synergos Cluster for complex workloads*
+![Synergos Components](./docs/images/syncluster_setup.png)
 
-Synergos Director is one of the core components necessary to scale up your Synergos workflow!
+*Setting up Synergos Cluster for complex workloads*
+
+In federated learning, it is important to establish a secured grid, where all orchestrator(s) and participants can reside in, and communicate accordingly for complex federated workflows. However, this is often easier said than done, due to a multitude of deployment conditions & configurations to consider. That's where `Synergos` and its respective components come in. 
+
+The ideas behind `Synergos` are simple: 
+- MODULARITY - Plug-&-play methodology for assembling your ideal grid architecture
+- AUTOMATION - All complexities involving federated orchestration are to be abstracted
+- SIMPLICITY - Deploy & execute in a single command
+
+TL;DR, We want users to be able to configure & deploy their federated endeavours with ease & confidence.
+
+<br>
+
+**Synergos Director** is one of the core components necessary to scale up your Synergos workflow!
+
+![Synergos Grid Configurations](./docs/images/synergos_modules.png)
+
+*X-raying Synergos' core components*
+
+Under the hood, we see that every feature embedded within each Synergos component is modularized as well. This allows users to activate or de-activate certain functionalities depending on their deployment setup.
 
 In addition to having all functions as that of [Synergos TTP](https://github.com/aimakerspace/synergos_ttp), it serves to ease the process of parallelizing multiple jobs across multiple federated grids.
 
@@ -24,7 +43,7 @@ git submodule update --init --recursive
 git submodule update --recursive --remote
 
 # Build director image
-docker build -t synergos_director:syncluster --label "syncluster_director" 
+docker build -t synergos_director:syncluster --label "syncluster_director" .
 
 # Start containerized service
 docker run --rm 
@@ -66,3 +85,16 @@ docker run --rm
         --logging_variant graylog 172.30.0.4 9300 
         --queue rabbitmq 172.17.0.4 5672
 ```
+
+> Note: Only 1 **Synergos Director** instance is required in a `SynCluster` grid!
+
+---
+<br>
+
+## Further Resources
+
+You can view the guides for running:
+- [Synergos Basic Standalone Grid i.e. local](https://docs.synergos.ai/BasicRunLocal.html)
+- [Synergos Basic Distributed Grid i.e. across multiple devices](https://docs.synergos.ai/BasicRunDistributed.html)
+- [Synergos Cluster Distributed Grid i.e. across multiple devices](https://docs.synergos.ai/ClusterRunDistributed.html)
+- [Example Datasets and Jupyter Notebooks](https://github.com/aimakerspace/Synergos/tree/master/examples)
