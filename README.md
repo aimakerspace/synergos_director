@@ -2,7 +2,7 @@
 
 Main job orchestrator for a synergos cluster.
 
-![Synergos Components](./docs/images/syncluster_setup.png)
+![Synergos Grid Configurations](./docs/images/syncluster_setup.png)
 
 *Setting up Synergos Cluster for complex workloads*
 
@@ -19,7 +19,7 @@ TL;DR, We want users to be able to configure & deploy their federated endeavours
 
 **Synergos Director** is one of the core components necessary to scale up your Synergos workflow!
 
-![Synergos Grid Configurations](./docs/images/synergos_modules.png)
+![Synergos Components](./docs/images/synergos_modules.png)
 
 *X-raying Synergos' core components*
 
@@ -38,6 +38,9 @@ Synergos Director has been dockerized for easy component-based deployment.
 git clone https://github.com/aimakerspace/synergos_director
 cd ./synergos_director
 
+# Checkout to stable tag
+git checkout tags/v0.1.0
+
 # Initialize & update all submodules
 git submodule update --init --recursive
 git submodule update --recursive --remote
@@ -51,15 +54,15 @@ docker run --rm
     -v <PATH-TO-DATA>:/orchestrator/data        # <-- Mount for data access
     -v <PATH-TO-OUTPUTS>:/orchestrator/outputs  # <-- Mount for outputs access
     -v <PATH-TO-MLFLOGS>:/mlflow                # <-- Mount for MLFlow outputs
-    --name director_syncluster 
+    --name <DIRECTOR_ID> 
     synergos_director:syncluster          
-        --id director_syncluster        
+        --id <DIRECTOR_ID>       
         --logging_variant <LOGGER-VARIANT> <LOGGER-HOST> <SYSMETRIC-PORT> 
         --queue <MQ-VARIANT> <MQ-HOST> <MQ-PORT>
         --censored                              # <-- optional
         --debug                                 # <-- optional
 ```
-
+- `<DIRECTOR_ID>` - ID of this director instance. If not specified, a random UUID will be generated.
 - `<PORT>` - Port on which Synergos Director is served
 - `<PATH-TO-DATA>` - User's custom volume on which data is to be stored 
 - `<PATH-TO-OUTPUTS>` - User's custom volume on which outputs are to be stored
@@ -71,22 +74,39 @@ docker run --rm
     - `<MQ-HOST>` - Specify Synergos MQ's host. This is a mandatory declaration, since Synergos Director orchestratrates jobs across multiple grids.
     - `<MQ-PORT>` - Synergos MQ's allocated port
 
-An example of a launch command is as follows:
+Examples of a launch command are as follows:
 
 ```
+# Basic logging (to screen)
 docker run --rm 
     -p 5001:5000      
-    -v /synergos_demos/orchestrator/data/:/director/data      
-    -v /synergos_demos/orchestrator/outputs/:/director/outputs      
+    -v /synergos_demos/orchestrator/data/:/orchestrator/data      
+    -v /synergos_demos/orchestrator/outputs/:/orchestrator/outputs      
     -v /synergos_demos/orchestrator/mlflow/:/mlflow 
     --name director_syncluster 
     synergos_director:syncluster          
         --id director_syncluster        
-        --logging_variant graylog 172.30.0.4 9300 
-        --queue rabbitmq 172.17.0.4 5672
+        --logging_variant basic
+        --queue rabbitmq 172.17.0.4 5672            # <-- Mandatory!
+
+OR
+
+# With centralized logging deployed by Orchestrator
+docker run --rm 
+    -p 5001:5000      
+    -v /synergos_demos/orchestrator/data/:/orchestrator/data      
+    -v /synergos_demos/orchestrator/outputs/:/orchestrator/outputs      
+    -v /synergos_demos/orchestrator/mlflow/:/mlflow 
+    --name director_syncluster 
+    synergos_director:syncluster          
+        --id director_syncluster        
+        --logging_variant graylog 172.30.0.4 9300   # <-- Recommended!
+        --queue rabbitmq 172.17.0.4 5672            # <-- Mandatory!
 ```
 
 > Note: Only 1 **Synergos Director** instance is required in a `SynCluster` grid!
+
+> Note: A `SynCluster` grid MUST have [Synergos MQ](https://github.com/aimakerspace/synergos_manager) deployed.
 
 ---
 <br>
